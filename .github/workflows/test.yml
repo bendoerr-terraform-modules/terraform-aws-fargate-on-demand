@@ -1,0 +1,23 @@
+name: Pull Request
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened, closed, labeled, unlabeled ]
+
+jobs:
+  terratest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.ORG_ACCESS_SSH_KEY }}
+      - name: Run Terratest (modules/persistence)
+        uses: cloudposse/github-action-terratest@main
+        with:
+          sourceDir: modules/persistence/test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}
