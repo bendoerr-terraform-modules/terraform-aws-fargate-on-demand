@@ -9,6 +9,10 @@ updates:
     directory: "/modules/persistence/test"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/modules/launcher/test"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/.github/workflows"
     schedule:

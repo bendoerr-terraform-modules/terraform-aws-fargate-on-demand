@@ -21,3 +21,10 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}
+      - name: Run Terratest (modules/launcher)
+        uses: cloudposse/github-action-terratest@main
+        with:
+          sourceDir: modules/launcher/test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}
