@@ -2,7 +2,11 @@
 version: 2
 updates:
   - package-ecosystem: "terraform"
-    directory: "/"
+    directory: "/modules/persistence"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "terraform"
+    directory: "/modules/launcher"
     schedule:
       interval: "weekly"
   - package-ecosystem: "gomod"
