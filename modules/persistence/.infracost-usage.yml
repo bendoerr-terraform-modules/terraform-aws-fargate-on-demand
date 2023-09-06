@@ -1,0 +1,7 @@
+version: 0.1
+resource_usage:
+  aws_efs_file_system.data:
+    storage_gb: 10.0                        # Total storage for Standard class in GB.
+    infrequent_access_storage_gb: 0.0       # Total storage for Infrequent Access class in GB.
+    monthly_infrequent_access_read_gb: 0.0  # Monthly infrequent access read requests in GB.
+    monthly_infrequent_access_write_gb: 0.0 # Monthly infrequent access write requests in GB.
