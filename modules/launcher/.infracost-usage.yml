@@ -1,0 +1,23 @@
+# Ben's Not Quiet Worst but Bad Scenario
+#
+# Assumptions:
+#   * Triggered every second for half the month
+#   * Seconds in a Month: 1314000
+#   * Log Retention: 3 days
+#   * Lambda Log Production per Execution: 0.5KiB
+#   * Average duration: 500ms
+#
+version: 0.1
+resource_usage:
+  aws_cloudwatch_log_group.launcher:
+    storage_gb: 0.07               # Executions per Log Retention * Log Production
+                                   # 259200 (seconds in 3 days / 2) * 0.5KiB = 0.06179
+
+    monthly_data_ingested_gb: 0.68 # Executions * Log Production
+                                   # 1314000 * 0.5KiB = 0.6742
+
+    monthly_data_scanned_gb: 0.00  # No Log Insights queries
+
+  aws_lambda_function.launcher:
+    monthly_requests: 1314000      # Assumption
+    request_duration_ms: 500       # Assumption

@@ -1,4 +1,6 @@
 version: 0.1
 projects:
   - path: modules/persistence
+    usage_file: modules/persistence/.infracost-usage.yml
   - path: modules/launcher
+    usage_file: modules/launcher/.infracost-usage.yml
