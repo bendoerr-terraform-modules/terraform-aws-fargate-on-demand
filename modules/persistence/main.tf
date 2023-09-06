@@ -7,7 +7,12 @@ module "label_data" {
 resource "aws_efs_file_system" "data" {
   creation_token = module.label_data.id
   tags           = module.label_data.tags
-  encrypted      = var.encrypted
+  encrypted      = true
+  kms_key_id     = var.kms_efs_arn != null ? var.kms_efs_arn : data.aws_kms_alias.efs.arn
+}
+
+data "aws_kms_alias" "efs" {
+  name = "alias/aws/elasticfilesystem"
 }
 
 resource "aws_efs_access_point" "data" {
@@ -46,7 +51,7 @@ resource "aws_efs_mount_target" "data" {
 
 data "aws_iam_policy_document" "data_rw" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "elasticfilesystem:ClientMount",
       "elasticfilesystem:ClientWrite",
@@ -62,7 +67,7 @@ data "aws_iam_policy_document" "data_rw" {
 }
 
 module "label_data_rw" {
-  source  = "git@github.com:bendoerr/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
   context = var.context
   name    = "data-rw"
 }
@@ -74,15 +79,16 @@ resource "aws_iam_policy" "data_rw" {
 }
 
 module "label_data_nfs" {
-  source  = "git@github.com:bendoerr/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
   context = var.context
   name    = "data-nfs"
 }
 
 resource "aws_security_group" "data_nfs" {
-  name   = module.label_data_nfs.id
-  tags   = module.label_data_nfs.tags
-  vpc_id = local.vpc_id
+  name        = module.label_data_nfs.id
+  tags        = module.label_data_nfs.tags
+  vpc_id      = local.vpc_id
+  description = "Allows NFS from itself"
 }
 
 

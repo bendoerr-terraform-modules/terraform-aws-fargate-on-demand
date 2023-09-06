@@ -17,16 +17,28 @@ variable "context" {
 }
 
 variable "ecs_cluster" {
-  type = string
+  type        = string
   description = ""
 }
 
 variable "ecs_service" {
-  type = string
+  type        = string
   description = ""
 }
 
 variable "trigger_cloudwatch_group" {
-  type = string
+  type        = string
+  description = ""
+}
+
+variable "lambda_env_kms_arn" {
+  type        = string
+  default     = null
+  description = ""
+}
+
+variable "lambda_logs_kms_arn" {
+  type        = string
+  default     = null
   description = ""
 }
