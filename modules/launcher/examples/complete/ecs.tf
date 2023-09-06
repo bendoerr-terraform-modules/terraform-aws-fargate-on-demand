@@ -11,22 +11,22 @@ module "label_svc" {
 }
 
 module "ecs" {
-  source  = "terraform-aws-modules/ecs/aws"
-  version = "5.2.2"
+  source       = "terraform-aws-modules/ecs/aws"
+  version      = "5.2.2"
   cluster_name = module.label_cluster.id
   services = {
     (module.label_svc.id) = {
-      cpu    = 256
-      memory = 512
-      subnet_ids = module.vpc.public_subnets
-      desired_count = 0
+      cpu                = 256
+      memory             = 512
+      subnet_ids         = module.vpc.public_subnets
+      desired_count      = 0
       enable_autoscaling = false
       container_definitions = {
         alpine = {
-          cpu                    = 256
-          memory                 = 512
-          essential              = true
-          image                  = "alpine:3"
+          cpu       = 256
+          memory    = 512
+          essential = true
+          image     = "alpine:3"
         }
       }
     }

@@ -15,9 +15,12 @@ resource "aws_lambda_function" "launcher" {
   tags             = module.label_launcher.tags
   role             = aws_iam_role.launcher_role.arn
   handler          = "aws-launcher-lambda-function.lambda_handler"
+  timeout          = 10
   filename         = data.archive_file.launcher.output_path
   source_code_hash = data.archive_file.launcher.output_base64sha256
   runtime          = "python3.8"
+
+  kms_key_arn = var.lambda_env_kms_arn
   environment {
     variables = {
       ECS_REGION  = var.context.region
@@ -25,11 +28,16 @@ resource "aws_lambda_function" "launcher" {
       ECS_SERVICE = var.ecs_service
     }
   }
+
+  tracing_config {
+    mode = "Active"
+  }
 }
 
 data "aws_caller_identity" "current" {}
 
 resource "aws_lambda_permission" "launcher_cw_invoke" {
+  statement_id   = module.label_launcher.id
   action         = "lambda:InvokeFunction"
   function_name  = aws_lambda_function.launcher.function_name
   principal      = "logs.${var.context.region}.amazonaws.com"
@@ -52,6 +60,7 @@ resource "aws_cloudwatch_log_subscription_filter" "launcher_cw_domain_filter" {
 resource "aws_cloudwatch_log_group" "launcher" {
   name              = "/aws/lambda/${module.label_launcher.id}"
   retention_in_days = 3
+  kms_key_id        = var.lambda_logs_kms_arn
 }
 
 data "aws_iam_policy_document" "lambda_assume_role" {
@@ -81,13 +90,21 @@ module "label_launcher_logs" {
 
 data "aws_iam_policy_document" "launcher_logs" {
   statement {
-    effect  = "Allow"
+    effect    = "Allow"
+    resources = [aws_cloudwatch_log_group.launcher.arn]
     actions = [
       "logs:CreateLogGroup",
+    ]
+  }
+  statement {
+    effect = "Allow"
+    # We cannot know what the name of the stream will be so this wildcard is the minimal permission
+    # tfsec:ignore:aws-iam-no-policy-wildcards
+    resources = ["${aws_cloudwatch_log_group.launcher.arn}:*"]
+    actions = [
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["${aws_cloudwatch_log_group.launcher.arn}:*"]
   }
 }
 
@@ -108,13 +125,13 @@ data "aws_ecs_cluster" "cluster" {
 }
 
 data "aws_ecs_service" "svc" {
-  cluster_arn = data.aws_ecs_cluster.cluster.arn
+  cluster_arn  = data.aws_ecs_cluster.cluster.arn
   service_name = var.ecs_service
 }
 
 data "aws_iam_policy_document" "ecs_svc_update" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "ecs:DescribeServices",
       "ecs:UpdateService",

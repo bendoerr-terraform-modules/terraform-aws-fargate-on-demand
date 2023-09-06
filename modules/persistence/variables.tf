@@ -16,20 +16,20 @@ variable "context" {
   description = "Shared Context from Ben's terraform-null-context"
 }
 
-variable "encrypted" {
-  type = bool
-  default = true
-  description = "If true (default), the file system will be encrypted using the default KMS key."
-}
-
 variable "mount_path" {
-  type = string
-  default = "/data"
+  type        = string
+  default     = "/data"
   description = "Path that NFS clients access the file system."
 }
 
 variable "subnet_ids" {
-  type = list(string)
-  default = []
+  type        = list(string)
+  default     = []
   description = "The subnet IDs to expose NFS mount targets."
+}
+
+variable "kms_efs_arn" {
+  type        = string
+  default     = null
+  description = "ARN of the KMS key to use for encrypting the EFS volume. Default aws/elasticfilesystem will be used instead."
 }
