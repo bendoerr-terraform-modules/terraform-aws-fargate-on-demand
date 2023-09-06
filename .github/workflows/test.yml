@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      max-parallel: 2
       matrix:
         project:
           - modules/launcher/test
           - modules/persistence/test
+
+    concurrency: "${{ matrix.project }}"
 
     steps:
       - uses: webfactory/ssh-agent@v0.8.0
