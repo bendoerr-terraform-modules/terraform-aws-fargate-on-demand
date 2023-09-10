@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+#
+
+################################################################################
+# Sanity
+################################################################################
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+################################################################################
+# Globals
+################################################################################
+
+# shellcheck disable=SC2155
+declare -r SCRIPT_NAME="$(basename "$0")"
+
+################################################################################
+# Helpers
+################################################################################
+
+function io::print_help() {
+  printf '\n%s\n' "Ben's Terraform AWS Fargate on Demand Task Reaper"
+  printf 'Usage: %s [-h|--help] [options]\n' "$(basename "$0")"
+  printf '\t%s\n' "-h, --help: Prints help"
+  printf '\t%s\n' ""
+}
+
+function io::info() {
+  xopts=("--tag" "${SCRIPT_NAME}" "--id=$$")
+  if [[ -t 0 ]]; then
+    xopts+=("--stderr")
+  fi
+  logger "${xopts[@]}" "INFO  $*"
+}
+
+function io::die() {
+  local msg="${1}"
+  local ret="${2:-1}"
+  local print_help="${3:-}"
+
+  if [[ ${print_help} == "print help" ]]; then
+    io::print_help >&2
+  fi
+
+  echo "ERROR ${msg}" >&2
+  logger --tag "${SCRIPT_NAME}" --id="$$" "${msg}"
+
+  exit "${ret}"
+}
+
+function io:die_missing_value() {
+  local key="${1}"
+  io::die "missing value for argument '${key}'"
+}
+
+################################################################################
+# Main
+################################################################################
+
+function main() {
+
+  while test $# -gt 0; do
+    key="${1}"
+    shift
+
+    case "${key}" in
+    --help | -h)
+      io::print_help
+      exit 0
+      ;;
+    esac
+  done
+
+  io:info "Fetching task metadata..."
+  io:info "Fetching task metadata..."
+  local \
+    cluster \
+    service \
+    task_metadata
+
+  task_metadata="$(
+    curl --silent \
+      --fail \
+      --show-error \
+      "${ECS_CONTAINER_METADATA_URI_V4}/task"
+  )"
+
+  cluster="$(jq -r '.Cluster' <<< "${task_metadata}")"
+  service="$(jq -r '.Service' <<< "${task_metadata}")"
+
+  io::info "Cluster: ${cluster}"
+  io::info "Service: ${service}"
+
+  io::info "Updating ECS Service ${cluster}/${service} to Desired Count 0"
+
+  aws ecs update-service \
+    --cluster "${cluster}" \
+    --service "${service}" \
+    --desired-count 0
+
+  io::info "... done"
+}
+
+################################################################################
+# Entry Point
+################################################################################
+
+main "$@"
