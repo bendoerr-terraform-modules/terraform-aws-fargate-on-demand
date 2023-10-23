@@ -36,7 +36,7 @@ jobs:
           sarif_file: tfsec.sarif
 
       - name: Add Code Review
-        uses: reviewdog/action-tfsec@v1.16.1
+        uses: reviewdog/action-tfsec@v1.20.0
         with:
           github_token: ${{ github.token }}
           reporter: github-pr-review
