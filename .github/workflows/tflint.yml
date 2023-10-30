@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       # Run init to get module code to be able to use `--module`
       - name: Terraform init
