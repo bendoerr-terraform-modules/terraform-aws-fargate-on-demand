@@ -25,7 +25,10 @@ jobs:
       # Run init to get module code to be able to use `--module`
       - name: Terraform init
         run: |
-          terraform init
+          for d in modules/*/ modules/*/examples/*/; do
+            echo "Running 'terraform init' in ${d}"
+            terraform -chdir="$d" init
+          done
 
       - name: Terraform fmt
         run: terraform  fmt -check -recursive
