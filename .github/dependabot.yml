@@ -5,19 +5,62 @@ updates:
     directory: "/modules/persistence"
     schedule:
       interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+
   - package-ecosystem: "terraform"
     directory: "/modules/launcher"
     schedule:
       interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+
   - package-ecosystem: "gomod"
     directory: "/modules/persistence/test"
     schedule:
       interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+  
   - package-ecosystem: "gomod"
     directory: "/modules/launcher/test"
     schedule:
       interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+
   - package-ecosystem: "github-actions"
-    directory: "/.github/workflows"
+    directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-ghaction):"
+
