@@ -3,10 +3,10 @@ module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/mod
 go 1.20
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.23.0
+	github.com/aws/aws-sdk-go-v2/config v1.24.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.27.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.32.1
-	github.com/gruntwork-io/terratest v0.46.6
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.33.0
+	github.com/gruntwork-io/terratest v0.46.7
 	github.com/kr/pretty v0.3.1
 )
 
@@ -24,7 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.2 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.17.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.19.1 // indirect
