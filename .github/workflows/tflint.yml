@@ -41,4 +41,5 @@ jobs:
           reporter: github-pr-review
           fail_on_error: "false"        # Optional. Fail action if errors are found
           tflint_rulesets: "aws"        # Optional. Extra official rulesets to install
+          tflint_init: "true"           # Optional. Whether to run tflint --init prior to linting (useful if you have a .tflint.hcl with some values in it).
           flags: "--module --recursive" # Optional. Add custom tflint flags
