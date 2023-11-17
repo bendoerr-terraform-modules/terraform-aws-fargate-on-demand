@@ -11,11 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      max-parallel: 2
+      max-parallel: 3
       matrix:
         project:
           - modules/launcher/test
           - modules/persistence/test
+          - modules/notice-discord/test
 
     concurrency: "${{ matrix.project }}"
 
@@ -24,10 +25,12 @@ jobs:
         with:
           ssh-private-key: |
             ${{ secrets.ORG_ACCESS_SSH_KEY }}
-      - name: Run Terratest (modules/persistence)
+      - name: Run Terratest $${ matrix.project }}
         uses: cloudposse/github-action-terratest@main
         with:
           sourceDir: ${{ matrix.project }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}
+          DISCORD_BOT_AUTH_TOKEN: ${{ secrets.DISCORD_BOT_AUTH_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
