@@ -4,3 +4,5 @@ projects:
     usage_file: modules/persistence/.infracost-usage.yml
   - path: modules/launcher
     usage_file: modules/launcher/.infracost-usage.yml
+  - path: modules/notice-discord
+    usage_file: modules/notice-discord/.infracost-usage.yml

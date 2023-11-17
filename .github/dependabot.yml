@@ -25,6 +25,18 @@ updates:
     commit-message:
       prefix: "⬆️ (deps-tf):"
 
+  - package-ecosystem: "terraform"
+    directory: "/modules/notice-discord"
+    schedule:
+      interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+
   - package-ecosystem: "gomod"
     directory: "/modules/persistence/test"
     schedule:
@@ -40,6 +52,19 @@ updates:
   
   - package-ecosystem: "gomod"
     directory: "/modules/launcher/test"
+    schedule:
+      interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+
+  - package-ecosystem: "gomod"
+    directory: "/modules/notice-discord/test"
     schedule:
       interval: "weekly"
     groups:
