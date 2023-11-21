@@ -6,3 +6,5 @@ projects:
     usage_file: modules/launcher/.infracost-usage.yml
   - path: modules/notice-discord
     usage_file: modules/notice-discord/.infracost-usage.yml
+  - path: modules/dns-record
+    usage_file: modules/dns-record/.infracost-usage.yml
