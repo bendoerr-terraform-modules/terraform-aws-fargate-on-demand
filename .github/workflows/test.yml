@@ -17,6 +17,7 @@ jobs:
           - modules/launcher/test
           - modules/persistence/test
           - modules/notice-discord/test
+          - modules/dns-record/test
 
     concurrency: "${{ matrix.project }}"
 
