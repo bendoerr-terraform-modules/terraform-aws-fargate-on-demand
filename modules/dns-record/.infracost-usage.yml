@@ -1,6 +1,17 @@
 version: 0.1
 resource_usage:
   aws_route53_record.this:
-    monthly_standard_queries: 1314000  # See ../launcher/.infracost-usage.yml for assumption
-    monthly_latency_based_queries: 0   # Monthly number of Latency Based Routing queries.
-    monthly_geo_queries: 0             # Monthly number of Geo DNS and Geoproximity queries.
+    monthly_standard_queries: 1314000 # See ../launcher/.infracost-usage.yml for assumption
+
+    monthly_latency_based_queries: 0  # Monthly number of Latency Based Routing queries.
+
+    monthly_geo_queries: 0            # Monthly number of Geo DNS and Geoproximity queries.
+
+  aws_cloudwatch_log_group.query:
+    storage_gb: 0.03               # Lookups per Log Retention * Log Size
+                                   # 259200 (seconds in 3 days / 2) * 0.1KiB = 0.027GB
+
+    monthly_data_ingested_gb: 0.14 # Monthly data ingested by CloudWatch logs in GB.
+                                   # 1314000 * 0.1KiB = 0.1314 GiB
+
+    monthly_data_scanned_gb: 0.0   # Monthly data scanned by CloudWatch logs insights in GB.
