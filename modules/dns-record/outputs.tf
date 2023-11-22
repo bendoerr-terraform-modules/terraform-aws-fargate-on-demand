@@ -9,3 +9,11 @@ output "record_id" {
 output "record_name" {
   value = aws_route53_record.this.name
 }
+
+output "query_log_group_arn" {
+  value = aws_cloudwatch_log_group.query.arn
+}
+
+output "query_log_group_filter_patten" {
+  value = "\"${aws_route53_record.this.name}\""
+}
