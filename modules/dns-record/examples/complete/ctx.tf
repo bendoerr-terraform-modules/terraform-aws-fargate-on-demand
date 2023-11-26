@@ -31,13 +31,6 @@ module "label" {
   name    = "test"
 }
 
-resource "aws_route53_zone" "test" {
-  name = "example.bendoerr.com"
-}
-
-output "test_route53_zone_id" {
-  value = aws_route53_zone.test.zone_id
-}
 
 data "aws_caller_identity" "this" {}
 

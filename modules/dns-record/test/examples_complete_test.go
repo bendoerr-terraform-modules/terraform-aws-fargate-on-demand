@@ -14,6 +14,7 @@ import (
 	"github.com/kr/pretty"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDefaults(t *testing.T) {
@@ -24,7 +25,8 @@ func TestDefaults(t *testing.T) {
 
 	tempTestFolder := test_structure.CopyTerraformFolderToTemp(t, rootFolder, terraformFolderRelativeToRoot)
 
-	rndns := random.UniqueId()
+	// Will be used in dns names, need to normalize to lower case letters
+	rndns := strings.ToLower(random.UniqueId())
 
 	terraformOptions := &terraform.Options{
 		// The path to where our Terraform code is located
@@ -47,6 +49,7 @@ func TestDefaults(t *testing.T) {
 	// Get the test role
 	testRecordControlRoleArn := terraform.Output(t, terraformOptions, "test_record_control_role_arn")
 	testZoneId := terraform.Output(t, terraformOptions, "test_route53_zone_id")
+	testZoneName := terraform.Output(t, terraformOptions, "test_route53_zone_name")
 	testRecordName := terraform.Output(t, terraformOptions, "record_name")
 
 	// AWS Session
@@ -61,7 +64,7 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Create an initial record that we can verify we get denied
-	unchangeableRecord := "unchangeable.example.bendoerr.com"
+	unchangeableRecord := "unchangeable." + testZoneName
 
 	route53svc := route53.NewFromConfig(cfg)
 	_, err = route53svc.ChangeResourceRecordSets(context.TODO(), &route53.ChangeResourceRecordSetsInput{
@@ -106,6 +109,9 @@ func TestDefaults(t *testing.T) {
 		})
 	}(route53svc)
 
+	// Trying to use the new policy too fast causes issues, give it a sec
+	time.Sleep(5 * time.Second)
+
 	// Assume Role AWS Session
 	cfg2, err := config.LoadDefaultConfig(
 		context.TODO(),
@@ -127,10 +133,10 @@ func TestDefaults(t *testing.T) {
 
 	cfg2.Credentials = appCreds
 
-	route53svc = route53.NewFromConfig(cfg2)
+	route53svc2 := route53.NewFromConfig(cfg2)
 
 	// Validate that we can get the zone info
-	_, err = route53svc.GetHostedZone(context.TODO(), &route53.GetHostedZoneInput{Id: &testZoneId})
+	_, err = route53svc2.GetHostedZone(context.TODO(), &route53.GetHostedZoneInput{Id: &testZoneId})
 
 	if err != nil {
 		t.Error(err)
@@ -138,7 +144,7 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Validate that we can list the zone records
-	record_sets, err := route53svc.ListResourceRecordSets(context.TODO(), &route53.ListResourceRecordSetsInput{
+	record_sets, err := route53svc2.ListResourceRecordSets(context.TODO(), &route53.ListResourceRecordSetsInput{
 		HostedZoneId: &testZoneId,
 	})
 
@@ -161,7 +167,7 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Validate that we can update the record
-	_, err = route53svc.ChangeResourceRecordSets(context.TODO(), &route53.ChangeResourceRecordSetsInput{
+	_, err = route53svc2.ChangeResourceRecordSets(context.TODO(), &route53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &types.ChangeBatch{
 			Changes: []types.Change{{
 				Action: "UPSERT",
@@ -184,7 +190,7 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Validate that we can NOT update the other record
-	_, err = route53svc.ChangeResourceRecordSets(context.TODO(), &route53.ChangeResourceRecordSetsInput{
+	_, err = route53svc2.ChangeResourceRecordSets(context.TODO(), &route53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &types.ChangeBatch{
 			Changes: []types.Change{{
 				Action: "UPSERT",
