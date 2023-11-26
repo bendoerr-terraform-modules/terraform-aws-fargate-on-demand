@@ -15,12 +15,12 @@ resource "aws_lambda_function" "launcher" {
   tags             = module.label_launcher.tags
   role             = aws_iam_role.launcher_role.arn
   handler          = "aws-launcher-lambda-function.lambda_handler"
-  timeout          = 10
+  timeout          = var.lambda_timeout
   filename         = data.archive_file.launcher.output_path
   source_code_hash = data.archive_file.launcher.output_base64sha256
-  runtime          = "python3.8"
+  runtime          = var.lambda_python_runtime
+  kms_key_arn      = var.lambda_env_kms_arn
 
-  kms_key_arn = var.lambda_env_kms_arn
   environment {
     variables = {
       ECS_REGION  = var.context.region
@@ -30,7 +30,7 @@ resource "aws_lambda_function" "launcher" {
   }
 
   tracing_config {
-    mode = "Active"
+    mode = var.lambda_tracing_config
   }
 }
 
@@ -52,14 +52,14 @@ data "aws_cloudwatch_log_group" "domain_logs" {
 resource "aws_cloudwatch_log_subscription_filter" "launcher_cw_domain_filter" {
   depends_on      = [aws_lambda_permission.launcher_cw_invoke]
   destination_arn = aws_lambda_function.launcher.arn
-  filter_pattern  = ""
+  filter_pattern  = var.trigger_filter_pattern
   log_group_name  = data.aws_cloudwatch_log_group.domain_logs.name
   name            = module.label_launcher_logs.id
 }
 
 resource "aws_cloudwatch_log_group" "launcher" {
   name              = "/aws/lambda/${module.label_launcher.id}"
-  retention_in_days = 3
+  retention_in_days = var.lambda_logs_retention
   kms_key_id        = var.lambda_logs_kms_arn
 }
 
