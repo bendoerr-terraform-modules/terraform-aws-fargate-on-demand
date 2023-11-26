@@ -7,7 +7,7 @@ resource_usage:
 
     monthly_geo_queries: 0            # Monthly number of Geo DNS and Geoproximity queries.
 
-  aws_cloudwatch_log_group.query:
+  aws_cloudwatch_log_group.query[0]:
     storage_gb: 0.03               # Lookups per Log Retention * Log Size
                                    # 259200 (seconds in 3 days / 2) * 0.1KiB = 0.027GB
 
