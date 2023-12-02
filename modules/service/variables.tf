@@ -118,9 +118,11 @@ variable "enable_container_insights" {
 }
 
 variable "logs_kms_key_id" {
-  default = ""
+  type = string
+  nullable = true
 }
 
 variable "sns_kms_key_id" {
-  default = ""
+  type = string
+  nullable = true
 }

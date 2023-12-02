@@ -8,6 +8,7 @@ resource "aws_sns_topic" "notifications" {
   name              = module.label_topic.id
   tags              = module.label_topic.tags
   kms_master_key_id = var.sns_kms_key_id
+
 }
 
 data "aws_iam_policy_document" "notification_publish" {
