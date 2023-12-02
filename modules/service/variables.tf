@@ -91,7 +91,7 @@ variable "additional_container_definitions" {
   type        = list(any)
   default     = []
   description = ""
-  nullable = false
+  nullable    = false
 }
 
 variable "service_subnet_ids" {
@@ -110,5 +110,17 @@ variable "record_control_policy_arn" {
 }
 
 variable "persistence_access_security_group" {
+  default = ""
+}
+
+variable "enable_container_insights" {
+  default = "disabled"
+}
+
+variable "logs_kms_key_id" {
+  default = ""
+}
+
+variable "sns_kms_key_id" {
   default = ""
 }

@@ -4,7 +4,7 @@ resource "aws_ecs_cluster" "svc" {
 
   setting {
     name  = "containerInsights"
-    value = "disabled"
+    value = var.enable_container_insights ? "enabled" : "disabled"
   }
 }
 

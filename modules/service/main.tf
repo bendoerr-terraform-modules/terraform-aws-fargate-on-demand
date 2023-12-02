@@ -28,4 +28,5 @@ data "aws_caller_identity" "current" {}
 resource "aws_cloudwatch_log_group" "svc" {
   name              = "/aws/ecs/${module.label.id}"
   retention_in_days = var.log_retention_days
+  kms_key_id        = var.logs_kms_key_id
 }

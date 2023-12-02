@@ -12,7 +12,7 @@ output "esc_service_name" {
 
 output "svc_control_policy_arn" {
   description = ""
-  value = aws_iam_policy.ecs_control.arn
+  value       = aws_iam_policy.ecs_control.arn
 }
 
 output "events_topic_arn" {

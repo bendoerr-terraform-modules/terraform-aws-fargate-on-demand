@@ -16,7 +16,7 @@ resource "aws_ecs_service" "svc" {
   }
 
   network_configuration {
-    subnets         = var.service_subnet_ids
+    subnets = var.service_subnet_ids
     security_groups = [
       aws_security_group.mc.id,
       var.persistence_access_security_group
@@ -33,15 +33,16 @@ resource "aws_ecs_service" "svc" {
 }
 
 resource "aws_security_group" "mc" {
-  name   = module.label.id
-  tags   = module.label.tags
-  vpc_id = var.vpc_id
+  name        = module.label.id
+  tags        = module.label.tags
+  description = "Main service: Allow inbound to configured ports and outbound anywhere"
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "mc_allow_port" {
   for_each = {
-    for i, m in var.port_mappings:
-        m.hostPort => m
+    for i, m in var.port_mappings :
+    m.hostPort => m
   }
   security_group_id = aws_security_group.mc.id
   tags              = module.label.tags

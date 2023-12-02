@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "svc_assume_role" {
 
 data "aws_iam_policy_document" "ecs_control" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "ecs:DescribeServices",
       "ecs:UpdateService",
@@ -23,7 +23,7 @@ data "aws_iam_policy_document" "ecs_control" {
   }
 
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "ecs:DescribeTasks",
       "ecs:UpdateService",
@@ -36,7 +36,7 @@ data "aws_iam_policy_document" "ecs_control" {
   }
 
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "ec2:DescribeNetworkInterfaces"
     ]
@@ -86,12 +86,14 @@ resource "aws_iam_role_policy_attachment" "mc_task_sns" {
 
 data "aws_iam_policy_document" "mc_task_cw" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
+    # We cannot know what the name of the stream will be so this wildcard is the minimal permission
+    # tfsec:ignore:aws-iam-no-policy-wildcards
     resources = ["${aws_cloudwatch_log_group.svc.arn}:*"]
   }
 }

@@ -8,7 +8,7 @@ locals {
 
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-region"        = var.context.region
         "awslogs-group"         = aws_cloudwatch_log_group.svc.name
         "awslogs-stream-prefix" = module.label.name
@@ -25,8 +25,8 @@ locals {
   }
 
   watchdog_container_definition = {
-    name        = module.label_wd.id
-    image       = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-custodian:main"
+    name  = module.label_wd.id
+    image = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-custodian:main"
     environment = [
       {
         name  = "DNS_ZONE_ID"
@@ -51,7 +51,7 @@ locals {
     ]
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-region"        = var.context.region
         "awslogs-group"         = aws_cloudwatch_log_group.svc.name
         "awslogs-stream-prefix" = module.label_wd.name
