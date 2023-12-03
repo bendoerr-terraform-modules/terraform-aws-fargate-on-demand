@@ -34,6 +34,8 @@ variable "notify_app_name" {
 variable "notify_app_url" {
   type        = string
   description = "TODO"
+
+  # TODO add validation that starts with http:// or https://
 }
 
 variable "event_topic_arn" {

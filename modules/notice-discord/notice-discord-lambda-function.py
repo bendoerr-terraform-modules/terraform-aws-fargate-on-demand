@@ -1,4 +1,6 @@
 """TODO
+See limitations about message here
+https://stackoverflow.com/a/67224684/84423
 """
 import os
 import boto3
@@ -94,6 +96,7 @@ def handler(event, context):
 
     message = {
         "embeds": [{
+            "type": "rich",
             "title": f"{event_titles[event_type]}",
             "description": f"{event_descriptions[event_type]}",
             "url": f"{notify_app_url}",
