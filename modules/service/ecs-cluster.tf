@@ -1,3 +1,4 @@
+# tfsec:ignore:aws-ecs-enable-container-insight
 resource "aws_ecs_cluster" "svc" {
   name = module.label.id
   tags = module.label.tags
@@ -7,17 +8,17 @@ resource "aws_ecs_cluster" "svc" {
     #
     # ! Pricing is $0.30/Custom Metric/Month[1]
     # ! There are 18 Custom Metrics[2]
+    # ! All custom metrics charges are prorated[1] by the hour.
+    #   Problematic for our module since the cluster and task will exist for
+    #   the whole month. Only the tasks will be spun up and down.
     # ! Infracost does not support Custom Metric Pricing
     #   (There isn't an associated resource for them)
-    # ! All custom metrics charges are prorated[1] by the hour.
     #
     # [1]: CloudWatch Pricing: https://aws.amazon.com/cloudwatch/pricing/
-    # [2]: ECS Container Metrics: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html
+    # [2]: ECS Container Insight Metrics: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html
     #
     # Expected Cost for Enabling Container Insights
     # 18 metrics * $0.30/metric = $5.40/month
-    #
-    # tfsec:ignore:aws-ecs-enable-container-insight
     name  = "containerInsights"
     value = var.enable_container_insights ? "enabled" : "disabled"
   }
