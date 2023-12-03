@@ -23,11 +23,15 @@ variable "mount_path" {
 }
 
 variable "owner_uid" {
-  default = 1000
+  type        = number
+  default     = 1000
+  description = "TODO"
 }
 
 variable "owner_gid" {
-  default = 1000
+  type        = number
+  default     = 1000
+  description = "TODO"
 }
 
 variable "subnet_ids" {

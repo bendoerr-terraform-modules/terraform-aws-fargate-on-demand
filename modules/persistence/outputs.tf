@@ -29,9 +29,11 @@ output "access_security_group" {
 }
 
 output "owner_gid" {
-  value = var.owner_gid
+  value       = var.owner_gid
+  description = "TODO"
 }
 
 output "owner_uid" {
-  value = var.owner_uid
+  value       = var.owner_uid
+  description = "TODO"
 }
