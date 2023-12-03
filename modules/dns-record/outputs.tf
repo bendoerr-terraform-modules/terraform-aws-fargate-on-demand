@@ -33,6 +33,11 @@ output "record_control_policy_arn" {
   description = "IAM Policy that allows modification of the DNS Record (and Hosted Zone information)"
 }
 
+output "query_log_group_name" {
+  value       = var.configure_query_log ? (var.create_query_log_group ? aws_cloudwatch_log_group.query[0].name : replace(var.query_log_group_arn, "^.*log-group:", "")) : ""
+  description = "ARN of the CloudWatch Log Group that will receive the DNS Query logs"
+}
+
 output "query_log_group_arn" {
   value       = var.configure_query_log ? (var.create_query_log_group ? aws_cloudwatch_log_group.query[0].arn : var.query_log_group_arn) : ""
   description = "ARN of the CloudWatch Log Group that will receive the DNS Query logs"
