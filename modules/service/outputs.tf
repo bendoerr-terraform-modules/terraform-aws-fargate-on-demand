@@ -18,3 +18,11 @@ output "svc_control_policy_arn" {
 output "events_topic_arn" {
   value = aws_sns_topic.notifications.arn
 }
+
+output "service_role_name" {
+  value = aws_iam_role.svc.name
+}
+
+output "service_role_arn" {
+  value = aws_iam_role.svc.arn
+}
