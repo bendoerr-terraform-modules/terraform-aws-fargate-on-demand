@@ -5,6 +5,7 @@ locals {
     image        = var.service_image
     portMappings = var.port_mappings != null ? var.port_mappings : []
     environment  = var.environment_variables != null ? var.environment_variables : []
+    secrets      = var.secret_variables != null ? var.secret_variables : []
 
     logConfiguration = {
       logDriver = "awslogs"

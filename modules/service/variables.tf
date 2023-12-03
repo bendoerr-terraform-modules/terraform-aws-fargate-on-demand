@@ -47,6 +47,14 @@ variable "environment_variables" {
   description = "List of [Port Mappings](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PortMapping.html)"
 }
 
+variable "secret_variables" {
+  type = list(object({
+    name      = string
+    valueFrom = string
+  }))
+  description = "List of [Port Mappings](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PortMapping.html)"
+}
+
 variable "data_mount_path" {
   type        = string
   default     = "/data"
