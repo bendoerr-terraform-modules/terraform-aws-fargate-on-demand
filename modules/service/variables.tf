@@ -114,7 +114,8 @@ variable "persistence_access_security_group" {
 }
 
 variable "enable_container_insights" {
-  default = "disabled"
+  type = bool
+  nullable = false
 }
 
 variable "logs_kms_key_id" {
