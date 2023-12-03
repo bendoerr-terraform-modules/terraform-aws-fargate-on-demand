@@ -8,7 +8,7 @@ resource "aws_efs_file_system" "data" {
   creation_token = module.label_data.id
   tags           = module.label_data.tags
   encrypted      = true
-  kms_key_id     = var.kms_efs_arn != null ? var.kms_efs_arn : data.aws_kms_alias.efs.arn
+  kms_key_id     = var.kms_efs_arn != null ? var.kms_efs_arn : data.aws_kms_alias.efs.target_key_arn
 }
 
 data "aws_kms_alias" "efs" {
@@ -22,14 +22,15 @@ resource "aws_efs_access_point" "data" {
   root_directory {
     path = var.mount_path
     creation_info {
-      owner_gid   = 1000
-      owner_uid   = 1000
+      owner_gid   = var.owner_gid
+      owner_uid   = var.owner_uid
       permissions = "0755"
     }
   }
+
   posix_user {
-    gid = 1000
-    uid = 1000
+    gid = var.owner_gid
+    uid = var.owner_uid
   }
 }
 

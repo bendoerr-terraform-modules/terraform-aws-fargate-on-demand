@@ -22,6 +22,18 @@ variable "mount_path" {
   description = "Path that NFS clients access the file system."
 }
 
+variable "owner_uid" {
+  type        = number
+  default     = 1000
+  description = "TODO"
+}
+
+variable "owner_gid" {
+  type        = number
+  default     = 1000
+  description = "TODO"
+}
+
 variable "subnet_ids" {
   type        = list(string)
   default     = []

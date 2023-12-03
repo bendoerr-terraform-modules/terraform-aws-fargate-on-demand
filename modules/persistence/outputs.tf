@@ -27,3 +27,13 @@ output "access_security_group" {
   value       = aws_security_group.data_nfs.id
   description = "Security Group that allows accessing the file system via NFS mount point."
 }
+
+output "owner_gid" {
+  value       = var.owner_gid
+  description = "TODO"
+}
+
+output "owner_uid" {
+  value       = var.owner_uid
+  description = "TODO"
+}
