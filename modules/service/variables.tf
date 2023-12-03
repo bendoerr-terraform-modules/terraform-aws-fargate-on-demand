@@ -106,24 +106,31 @@ variable "log_retention_days" {
 }
 
 variable "record_control_policy_arn" {
-  default = ""
+  type        = string
+  default     = ""
+  description = ""
 }
 
 variable "persistence_access_security_group" {
-  default = ""
+  type        = string
+  default     = ""
+  description = ""
 }
 
 variable "enable_container_insights" {
-  type = bool
-  nullable = false
+  type        = bool
+  description = ""
+  nullable    = false
 }
 
 variable "logs_kms_key_id" {
-  type     = string
-  nullable = true
+  type        = string
+  description = ""
+  nullable    = true
 }
 
 variable "sns_kms_key_id" {
-  type     = string
-  nullable = true
+  type        = string
+  description = ""
+  nullable    = true
 }
