@@ -1,5 +1,5 @@
 module "label_notice" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "ntc-dscrd"
 }
@@ -75,7 +75,7 @@ resource "aws_iam_role" "notice_role" {
 }
 
 module "label_notice_logs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "ntc-dscrd-logs"
 }
