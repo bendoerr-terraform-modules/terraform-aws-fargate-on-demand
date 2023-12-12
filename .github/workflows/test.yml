@@ -5,10 +5,15 @@ on:
     branches: [ main ]
     types: [ opened, synchronize, reopened ]
 
+permissions:
+  contents: read
+
 jobs:
   terratest:
     name: Test Terraform Code
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
 
     strategy:
       max-parallel: 3
@@ -26,12 +31,16 @@ jobs:
         with:
           ssh-private-key: |
             ${{ secrets.ORG_ACCESS_SSH_KEY }}
-      - name: Run Terratest $${ matrix.project }}
-        uses: cloudposse/github-action-terratest@main
+
+      - uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a # v4.0.1
+        with:
+          role-to-assume: arn:aws:iam::234656776442:role/brd-sndbx-ue1-core-apply
+          aws-region: us-east-1
+
+      - name: terratest
+        uses: cloudposse/github-action-terratest@bcc438f66e180dcaafcacdf8644967dea9eaf7d2 # main
         with:
           sourceDir: ${{ matrix.project }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}
           DISCORD_BOT_AUTH_TOKEN: ${{ secrets.DISCORD_BOT_AUTH_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
