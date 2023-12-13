@@ -17,7 +17,7 @@ variable "namespace" {
 }
 
 variable "assume_principal" {
-  type = string
+  type     = string
   nullable = true
 }
 
