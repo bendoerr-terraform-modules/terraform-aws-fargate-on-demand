@@ -1,19 +1,19 @@
 data "aws_caller_identity" "this" {}
 
 module "label" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "rcrd"
 }
 
 module "label_ctl" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "rcrd-ctl"
 }
 
 module "label_logs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "rcrd-logs"
 }

@@ -1,5 +1,5 @@
 module "label_launcher" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "lnchr"
 }
@@ -83,7 +83,7 @@ resource "aws_iam_role" "launcher_role" {
 }
 
 module "label_launcher_logs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "lnchr-logs"
 }
@@ -144,7 +144,7 @@ data "aws_iam_policy_document" "ecs_svc_update" {
 }
 
 module "label_ecs_svc_update" {
-  source  = "git@github.com:bendoerr/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr/terraform-null-label?ref=v0.4.1"
   context = var.context
   name    = "lnchr-ecs-ctl"
 }
