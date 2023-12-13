@@ -42,5 +42,6 @@ jobs:
         with:
           sourceDir: ${{ matrix.project }}
         env:
+          TF_VAR_assume_principal: "arn:aws:iam::234656776442:role/brd-sndbx-ue1-core-apply"
           DISCORD_BOT_AUTH_TOKEN: ${{ secrets.DISCORD_BOT_AUTH_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}

@@ -16,6 +16,11 @@ variable "namespace" {
   type = string
 }
 
+variable "assume_principal" {
+  type = string
+  nullable = true
+}
+
 module "context" {
   source      = "git@github.com:bendoerr-terraform-modules/terraform-null-context?ref=v0.4.0"
   namespace   = var.namespace
@@ -39,7 +44,7 @@ data "aws_iam_policy_document" "assume_role" {
     actions = ["sts:AssumeRole"]
     principals {
       type        = "AWS"
-      identifiers = [data.aws_caller_identity.this.arn]
+      identifiers = [var.assume_principal != null ? var.assume_principal : data.aws_caller_identity.this.arn]
     }
   }
 }
