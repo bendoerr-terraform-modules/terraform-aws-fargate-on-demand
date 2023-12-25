@@ -32,12 +32,12 @@ jobs:
           sarif_file: tfsec.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: tfsec.sarif
 
       - name: Add Code Review
-        uses: reviewdog/action-tfsec@v1.20.1
+        uses: reviewdog/action-tfsec@v1.21.0
         with:
           github_token: ${{ github.token }}
           reporter: github-pr-review
