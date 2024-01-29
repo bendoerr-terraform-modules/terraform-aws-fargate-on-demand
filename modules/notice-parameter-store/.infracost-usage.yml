@@ -1,0 +1,28 @@
+# Scenario:
+#   An event is triggered every minute
+#   = 1440 events a day
+#   = 43200 events a month
+#
+version: 0.1
+resource_usage:
+
+  aws_cloudwatch_log_group.notice:
+    storage_gb: 0.0065 # Total data stored by CloudWatch logs in GB.
+                       # Observation: 1.5KB per lambda invocation
+                       # Configruation: 3 days of retention
+                       # -> 1.5KB * 1440 * 3 = 6.5MB = 0.0065GB
+
+    monthly_data_ingested_gb: 0.065 # Monthly data ingested by CloudWatch logs in GB.
+                                    # Observation: 1.5KB per lambda invocation
+                                    # -> 1.5KB * 43200 = 65MB = 0.065GB 
+
+    monthly_data_scanned_gb: 0.0 # Monthly data scanned by CloudWatch logs insights in GB.
+                                 # None
+
+  aws_lambda_function.notice:
+    monthly_requests: 43200 # Monthly requests to the Lambda function.
+
+    request_duration_ms: 400 # Average duration of each request in milliseconds.
+                             # Observed startup duration + execution: 500ms
+                             # Observed execution: 300ms
+                             # Pick a worst case middle ground around 400
