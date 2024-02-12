@@ -6,8 +6,8 @@ toolchain go1.21.4
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.31.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.38.1
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.32.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.38.3
 	github.com/gruntwork-io/terratest v0.46.11
 	github.com/kr/pretty v0.3.1
 )
