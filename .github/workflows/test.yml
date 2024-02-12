@@ -27,12 +27,12 @@ jobs:
     concurrency: "${{ matrix.project }}"
 
     steps:
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: |
             ${{ secrets.ORG_ACCESS_SSH_KEY }}
 
-      - uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a # v4.0.1
+      - uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
         with:
           role-to-assume: arn:aws:iam::234656776442:role/brd-sndbx-ue1-core-apply
           aws-region: us-east-1
