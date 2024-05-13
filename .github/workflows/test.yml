@@ -38,7 +38,7 @@ jobs:
           aws-region: us-east-1
 
       - name: terratest
-        uses: cloudposse/github-action-terratest@2a947b90b7807677d97c539785bb4b5004e6739c # main
+        uses: cloudposse/github-action-terratest@75b198da6d7bd8257c1f114efb97f61f05deba14 # main
         with:
           sourceDir: ${{ matrix.project }}
         env:
