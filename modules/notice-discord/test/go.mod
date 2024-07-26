@@ -6,8 +6,8 @@ toolchain go1.21.4
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.27
-	github.com/aws/aws-sdk-go-v2/service/sns v1.29.3
-	github.com/bwmarrin/discordgo v0.27.1
+	github.com/aws/aws-sdk-go-v2/service/sns v1.31.3
+	github.com/bwmarrin/discordgo v0.28.1
 	github.com/gruntwork-io/terratest v0.47.0
 	github.com/kr/pretty v0.3.1
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
@@ -58,7 +58,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/gruntwork-io/go-commons v0.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
