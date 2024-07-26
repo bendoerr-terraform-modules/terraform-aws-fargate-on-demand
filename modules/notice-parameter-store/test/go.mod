@@ -6,8 +6,8 @@ toolchain go1.21.4
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.27
-	github.com/aws/aws-sdk-go-v2/service/sns v1.26.7
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.44.7
+	github.com/aws/aws-sdk-go-v2/service/sns v1.31.3
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.52.3
 	github.com/gruntwork-io/terratest v0.47.0
 	github.com/kr/pretty v0.3.1
 )
