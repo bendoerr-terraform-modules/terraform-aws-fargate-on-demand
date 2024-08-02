@@ -1,5 +1,5 @@
 module "label_data" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.2"
   context = var.context
   name    = "data"
 }
@@ -68,7 +68,7 @@ data "aws_iam_policy_document" "data_rw" {
 }
 
 module "label_data_rw" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.2"
   context = var.context
   name    = "data-rw"
 }
@@ -80,7 +80,7 @@ resource "aws_iam_policy" "data_rw" {
 }
 
 module "label_data_nfs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.2"
   context = var.context
   name    = "data-nfs"
 }
