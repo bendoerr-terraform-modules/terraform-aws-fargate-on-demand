@@ -4,11 +4,11 @@ go 1.21.4
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.4
-	github.com/aws/aws-sdk-go-v2/config v1.27.28
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.28
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.42.4
-	github.com/aws/aws-sdk-go-v2/service/sts v1.30.4
-	github.com/gruntwork-io/terratest v0.47.0
+	github.com/aws/aws-sdk-go-v2/config v1.27.31
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.30
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.43.0
+	github.com/aws/aws-sdk-go-v2/service/sts v1.30.5
+	github.com/gruntwork-io/terratest v0.47.1
 	github.com/kr/pretty v0.3.1
 )
 
@@ -57,7 +57,7 @@ require (
 	github.com/gruntwork-io/go-commons v0.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-getter v1.7.5 // indirect
+	github.com/hashicorp/go-getter v1.7.6 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
