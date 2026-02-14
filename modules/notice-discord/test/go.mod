@@ -1,6 +1,6 @@
 module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/modules/launcher/test
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.28
@@ -99,7 +99,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/oauth2 v0.27.0 // indirect
+	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
