@@ -20,24 +20,36 @@ resource "aws_ecs_cluster" "svc" {
     #   those metrics are prorated to actual uptime hours — making the real
     #   cost significantly less than the worst-case estimate below.
     #
-    # Metric count[2]:
-    #   AWS currently publishes 23+ ECS Container Insights metrics. Not all
-    #   apply to Fargate (instance-level metrics are EC2-only). The exact
-    #   number of custom metrics billed depends on active dimension
-    #   combinations (cluster, service, task family).
+    # Observability modes (as of Dec 2024)[2]:
+    #   This module uses standard observability (setting value "enabled").
+    #   Enhanced observability ("enhanced") was released Dec 2024 and adds
+    #   per-task-definition and per-container metrics at higher cardinality.
+    #
+    # Metric counts for Fargate standard observability[2]:
+    #   Cluster-level:  13 metrics
+    #   Service-level:  15 metrics
+    #   Task-level:     10 metrics
+    #   Total billed = 13×(clusters) + 15×(services) + 10×(tasks)
+    #   Increasing running task instances does NOT increase metric count —
+    #   metrics are aggregated by task and service name.
+    #
+    # For reference, Fargate enhanced observability adds:
+    #   Cluster: 29, Service: 31, Task-def: 26, Task: 26, Container: 26
     #
     # Infracost does not support custom metric pricing (there is no
     # associated Terraform resource for them).
     #
     # [1]: https://aws.amazon.com/cloudwatch/pricing/
     # [2]: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html
+    # Pricing validated: Feb 2026
     #
-    # Worst-case estimate (all metrics emitted 24/7):
-    #   ~20 applicable metrics * $0.30/metric = ~$6.00/month
+    # Worst-case estimate (all metrics emitted 24/7, 1 cluster + 1 service):
+    #   (13 + 15 + 10) = 38 metrics * $0.30/metric = ~$11.40/month
     # Realistic estimate for on-demand usage (e.g. 40h/month):
-    #   Cluster metrics (~5): $1.50/month (always on)
-    #   Task metrics (~15): 15 * $0.30 * (40/730) ≈ $0.25/month
-    #   Total: ~$1.75/month
+    #   Cluster metrics (13): $3.90/month (always on)
+    #   Service metrics (15): $4.50/month (always on while service exists)
+    #   Task metrics (10): 10 * $0.30 * (40/730) ≈ $0.16/month
+    #   Total: ~$8.56/month
     name  = "containerInsights"
     value = var.enable_container_insights ? "enabled" : "disabled"
   }
