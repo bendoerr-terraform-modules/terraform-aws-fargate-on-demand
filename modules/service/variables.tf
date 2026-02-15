@@ -127,7 +127,7 @@ variable "persistence_access_security_group" {
 
 variable "enable_container_insights" {
   type        = bool
-  description = ""
+  description = "Enable CloudWatch Container Insights for the ECS cluster. Metrics are charged as custom metrics ($0.30/metric/month, prorated by hour). Actual cost for on-demand usage is typically low since task-level metrics are only emitted while tasks are running."
   nullable    = false
 }
 
