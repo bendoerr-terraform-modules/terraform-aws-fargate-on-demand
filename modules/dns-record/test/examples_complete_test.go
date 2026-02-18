@@ -110,7 +110,7 @@ func TestDefaults(t *testing.T) {
 	}(route53svc)
 
 	// Trying to use the new policy too fast causes issues, give it a sec
-	time.Sleep(5 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	// Assume Role AWS Session
 	cfg2, err := config.LoadDefaultConfig(
