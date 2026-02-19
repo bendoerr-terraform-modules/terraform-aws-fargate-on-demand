@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/kr/pretty"
@@ -109,9 +110,6 @@ func TestDefaults(t *testing.T) {
 		})
 	}(route53svc)
 
-	// Trying to use the new policy too fast causes issues, give it a sec
-	time.Sleep(5 * time.Second)
-
 	// Assume Role AWS Session
 	cfg2, err := config.LoadDefaultConfig(
 		context.TODO(),
@@ -124,19 +122,16 @@ func TestDefaults(t *testing.T) {
 	}
 
 	appCreds := stscreds.NewAssumeRoleProvider(sts.NewFromConfig(cfg2), testRecordControlRoleArn)
-	_, err = appCreds.Retrieve(context.TODO())
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
 
 	cfg2.Credentials = appCreds
 
 	route53svc2 := route53.NewFromConfig(cfg2)
 
-	// Validate that we can get the zone info
-	_, err = route53svc2.GetHostedZone(context.TODO(), &route53.GetHostedZoneInput{Id: &testZoneId})
+	// IAM policy propagation is eventually consistent; retry until the role works.
+	_, err = retry.DoWithRetryE(t, "wait for IAM propagation", 10, 5*time.Second, func() (string, error) {
+		_, e := route53svc2.GetHostedZone(context.TODO(), &route53.GetHostedZoneInput{Id: &testZoneId})
+		return "", e
+	})
 
 	if err != nil {
 		t.Error(err)
