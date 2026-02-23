@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.9
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.1
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.71.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.72.0
 	github.com/gruntwork-io/terratest v0.56.0
 	github.com/kr/pretty v0.3.1
 )
