@@ -22,7 +22,7 @@ variable "vpc_id" {
 
 variable "task_cpu" {
   type        = string
-  description = "The number of CPU units used by the Fargate task. Must be a valid Fargate CPU value."
+  description = "The number of CPU units used by the Fargate task. Must be a valid Fargate CPU value. Note: task_cpu and task_memory must form a valid combination per AWS Fargate requirements. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html"
 
   validation {
     condition     = contains(["256", "512", "1024", "2048", "4096", "8192", "16384"], var.task_cpu)
@@ -32,7 +32,7 @@ variable "task_cpu" {
 
 variable "task_memory" {
   type        = string
-  description = "The amount of memory (in MiB) used by the Fargate task. Must be a valid Fargate memory value. Valid combinations depend on task_cpu; see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size"
+  description = "The amount of memory (in MiB) used by the Fargate task. Must be a valid Fargate memory value. Note: task_cpu and task_memory must form a valid combination per AWS Fargate requirements. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html"
 
   validation {
     condition     = contains(["512", "1024", "2048", "3072", "4096", "5120", "6144", "7168", "8192", "9216", "10240", "11264", "12288", "13312", "14336", "15360", "16384", "17408", "18432", "19456", "20480", "21504", "22528", "23552", "24576", "25600", "26624", "27648", "28672", "29696", "30720", "32768", "36864", "40960", "45056", "49152", "53248", "57344", "61440", "65536", "69632", "73728", "77824", "81920", "86016", "90112", "94208", "98304", "102400", "106496", "110592", "114688", "118784", "122880"], var.task_memory)
@@ -87,9 +87,12 @@ variable "secret_variables" {
 
   validation {
     condition = alltrue([
-      for sv in var.secret_variables : can(regex("^arn:aws[a-zA-Z-]*:(ssm|secretsmanager):[a-z0-9-]+:\\d{12}:", sv.valueFrom))
+      for sv in var.secret_variables : (
+        can(regex("^arn:aws[a-zA-Z-]*:ssm:[a-z0-9-]+:\\d{12}:parameter\\/.+$", sv.valueFrom)) ||
+        can(regex("^arn:aws[a-zA-Z-]*:secretsmanager:[a-z0-9-]+:\\d{12}:secret:[^:]+(:[^:]*){0,3}$", sv.valueFrom))
+      )
     ])
-    error_message = "All secret_variables valueFrom values must be valid ARNs for SSM Parameter Store or Secrets Manager."
+    error_message = "All secret_variables valueFrom values must be valid ARNs for SSM Parameter Store (arn:aws:ssm:REGION:ACCOUNT:parameter/NAME) or Secrets Manager (arn:aws:secretsmanager:REGION:ACCOUNT:secret:NAME with optional JSON key, version stage, and version ID suffixes)."
   }
 }
 
@@ -181,22 +184,22 @@ variable "enable_container_insights" {
 
 variable "logs_kms_key_id" {
   type        = string
-  description = "ARN of the KMS key to use for encrypting CloudWatch Logs. Must be a valid KMS key ARN."
+  description = "KMS key ARN or key ID to use for encrypting CloudWatch Logs. Accepts full KMS ARNs (including multi-Region mrk- keys), standalone UUID key IDs, or standalone mrk- key IDs."
   nullable    = true
 
   validation {
-    condition     = var.logs_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/[a-f0-9-]+|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$", var.logs_kms_key_id))
-    error_message = "logs_kms_key_id must be a valid KMS key ARN or key ID (UUID)."
+    condition     = var.logs_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/(mrk-[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12})|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|mrk-[A-Fa-f0-9]{32})$", var.logs_kms_key_id))
+    error_message = "logs_kms_key_id must be a valid KMS key ARN or key ID (UUID or multi-Region mrk- format)."
   }
 }
 
 variable "sns_kms_key_id" {
   type        = string
-  description = "ARN of the KMS key to use for encrypting SNS topics. Must be a valid KMS key ARN."
+  description = "KMS key ARN or key ID to use for encrypting SNS topics. Accepts full KMS ARNs (including multi-Region mrk- keys), standalone UUID key IDs, or standalone mrk- key IDs."
   nullable    = true
 
   validation {
-    condition     = var.sns_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/[a-f0-9-]+|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$", var.sns_kms_key_id))
-    error_message = "sns_kms_key_id must be a valid KMS key ARN or key ID (UUID)."
+    condition     = var.sns_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/(mrk-[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12})|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|mrk-[A-Fa-f0-9]{32})$", var.sns_kms_key_id))
+    error_message = "sns_kms_key_id must be a valid KMS key ARN or key ID (UUID or multi-Region mrk- format)."
   }
 }
