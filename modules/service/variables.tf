@@ -87,9 +87,9 @@ variable "secret_variables" {
 
   validation {
     condition = alltrue([
-      for sv in var.secret_variables : can(regex("^arn:aws[a-zA-Z-]*:(ssm|secretsmanager|kms):[a-z0-9-]+:\\d{12}:", sv.valueFrom))
+      for sv in var.secret_variables : can(regex("^arn:aws[a-zA-Z-]*:(ssm|secretsmanager):[a-z0-9-]+:\\d{12}:", sv.valueFrom))
     ])
-    error_message = "All secret_variables valueFrom values must be valid ARNs for SSM Parameter Store, Secrets Manager, or KMS."
+    error_message = "All secret_variables valueFrom values must be valid ARNs for SSM Parameter Store or Secrets Manager."
   }
 }
 
@@ -185,8 +185,8 @@ variable "logs_kms_key_id" {
   nullable    = true
 
   validation {
-    condition     = var.logs_kms_key_id == null || can(regex("^arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/", var.logs_kms_key_id))
-    error_message = "logs_kms_key_id must be a valid KMS key ARN (e.g., arn:aws:kms:us-east-1:123456789012:key/mrk-...)."
+    condition     = var.logs_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/[a-f0-9-]+|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$", var.logs_kms_key_id))
+    error_message = "logs_kms_key_id must be a valid KMS key ARN or key ID (UUID)."
   }
 }
 
@@ -196,7 +196,7 @@ variable "sns_kms_key_id" {
   nullable    = true
 
   validation {
-    condition     = var.sns_kms_key_id == null || can(regex("^arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/", var.sns_kms_key_id))
-    error_message = "sns_kms_key_id must be a valid KMS key ARN (e.g., arn:aws:kms:us-east-1:123456789012:key/mrk-...)."
+    condition     = var.sns_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/[a-f0-9-]+|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$", var.sns_kms_key_id))
+    error_message = "sns_kms_key_id must be a valid KMS key ARN or key ID (UUID)."
   }
 }
