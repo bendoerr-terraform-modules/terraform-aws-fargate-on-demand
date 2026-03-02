@@ -1,5 +1,5 @@
 module "label_notice" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.5.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
   context = var.context
   name    = "ntc-dscrd"
 }
