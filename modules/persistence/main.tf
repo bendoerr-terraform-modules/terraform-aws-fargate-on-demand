@@ -80,7 +80,7 @@ resource "aws_iam_policy" "data_rw" {
 }
 
 module "label_data_nfs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.5.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
   context = var.context
   name    = "data-nfs"
 }
