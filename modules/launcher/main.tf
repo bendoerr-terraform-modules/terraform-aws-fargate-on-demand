@@ -144,7 +144,7 @@ data "aws_iam_policy_document" "ecs_svc_update" {
 }
 
 module "label_ecs_svc_update" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.5.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
   context = var.context
   name    = "lnchr-ecs-ctl"
 }
