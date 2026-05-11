@@ -12,13 +12,13 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: webfactory/ssh-agent@v0.9.1
+      - uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: |
             ${{ secrets.ORG_ACCESS_SSH_KEY }}
 
       - name: Setup Infracost
-        uses: infracost/actions/setup@v3
+        uses: infracost/actions/setup@v4
         # See https://github.com/infracost/actions/tree/master/setup for other inputs
         # If you can't use this action, see Docker images in https://infracost.io/cicd
         with:
