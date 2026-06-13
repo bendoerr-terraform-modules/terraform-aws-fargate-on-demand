@@ -1,7 +1,7 @@
 on:
   pull_request:
-    branches: [ main ]
-    types: [ opened, synchronize, reopened ]
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 jobs:
   infracost:
@@ -28,7 +28,7 @@ jobs:
       - name: Checkout base branch
         uses: actions/checkout@v6
         with:
-          ref: '${{ github.event.pull_request.base.ref }}'
+          ref: "${{ github.event.pull_request.base.ref }}"
 
       # Generate Infracost JSON file as the baseline.
       - name: Generate Infracost cost estimate baseline
