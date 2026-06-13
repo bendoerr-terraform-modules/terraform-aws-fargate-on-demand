@@ -71,7 +71,7 @@ updates:
       prefix: "⬆️ (deps-test):"
     cooldown:
       default-days: 14
-  
+
   - package-ecosystem: "gomod"
     directory: "/modules/launcher/test"
     schedule:
@@ -131,4 +131,3 @@ updates:
       prefix: "⬆️ (deps-ghaction):"
     cooldown:
       default-days: 14
-
