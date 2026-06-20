@@ -6,7 +6,7 @@ module "label" {
 
 locals {
   enabled = var.enabled ? 1 : 0
-  ami_id  = var.ami_id != null ? var.ami_id : nonsensitive(data.aws_ssm_parameter.al2023.value)
+  ami_id  = var.ami_id != null ? var.ami_id : nonsensitive(data.aws_ssm_parameter.al2023[0].value)
 
   user_data = templatefile("${path.module}/user-data.sh.tftpl", {
     mount_path          = var.mount_path
@@ -17,8 +17,10 @@ locals {
 }
 
 # Latest Amazon Linux 2023 arm64 AMI, published by AWS as a public SSM parameter.
+# Skipped entirely when the caller supplies an explicit ami_id.
 data "aws_ssm_parameter" "al2023" {
-  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+  count = var.ami_id == null ? 1 : 0
+  name  = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
 }
 
 # ---------------------------------------------------------------------------

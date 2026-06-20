@@ -1,3 +1,15 @@
+variable "efs_access_enabled" {
+  type        = bool
+  default     = false
+  description = "Bring the helper instance up in this example. Defaults to false so a casual apply stays cost-safe; set true to exercise the running helper."
+}
+
+variable "create_transfer_bucket" {
+  type        = bool
+  default     = false
+  description = "Create the scratch transfer bucket in this example. Defaults to false to keep a casual apply cost-safe."
+}
+
 module "fod_persistence" {
   source     = "../../../persistence"
   context    = module.context.shared
@@ -7,7 +19,7 @@ module "fod_persistence" {
 module "fod_efs_access" {
   source  = "../.."
   context = module.context.shared
-  enabled = true
+  enabled = var.efs_access_enabled
 
   subnet_id             = module.vpc.public_subnets[0]
   file_system_id        = module.fod_persistence.file_system_id
@@ -17,7 +29,7 @@ module "fod_efs_access" {
   owner_uid             = module.fod_persistence.owner_uid
   owner_gid             = module.fod_persistence.owner_gid
 
-  create_transfer_bucket = true
+  create_transfer_bucket = var.create_transfer_bucket
 }
 
 output "instance_id" {
