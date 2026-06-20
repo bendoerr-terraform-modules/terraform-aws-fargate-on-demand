@@ -85,7 +85,9 @@ function renderCard(name, svc) {
 
   card.append(head, dl);
 
-  if (svc.url) {
+  // Only link http(s) URLs -- guards the href sink against a javascript:/data:
+  // URL even though state.json is a trusted source (defense in depth).
+  if (svc.url && /^https?:\/\//i.test(svc.url)) {
     const link = el("a", "card-link", "Open app ↗");
     link.href = svc.url;
     link.rel = "noopener noreferrer";

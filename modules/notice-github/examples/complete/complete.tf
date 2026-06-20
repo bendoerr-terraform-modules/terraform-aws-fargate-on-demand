@@ -13,15 +13,16 @@ module "label_topic" {
   name    = "ntc-gh-topic"
 }
 
-# Encrypted with the AWS-managed alias/aws/sns key (satisfies AWS-0095). Org
-# house style is AWS-managed encryption everywhere -- a CMK buys no security over
-# the AWS-managed key while costing ~$1/mo/key -- so AWS-0136 (wants a CMK) is
-# deliberately suppressed rather than "fixed" by bolting on a key.
-# trivy:ignore:AVD-AWS-0136
+# Intentionally unencrypted, matching notice-discord's example topic. This topic
+# receives ECS task-state events; in real use a service principal (e.g.
+# EventBridge) publishes, and such principals cannot use the AWS-managed
+# alias/aws/sns key -- its key policy can't be granted to them -- so SSE with the
+# managed key would silently break delivery. The org doesn't use CMKs, so
+# AWS-0095 is suppressed rather than satisfied.
+# trivy:ignore:AVD-AWS-0095
 resource "aws_sns_topic" "events" {
-  name              = module.label_topic.id
-  tags              = module.label_topic.tags
-  kms_master_key_id = "alias/aws/sns"
+  name = module.label_topic.id
+  tags = module.label_topic.tags
 }
 
 module "notify" {
