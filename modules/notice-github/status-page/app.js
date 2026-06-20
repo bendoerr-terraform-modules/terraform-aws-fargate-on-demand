@@ -131,14 +131,21 @@ function render(state) {
     : "";
 }
 
+// Auto-refresh and the manual button can call load() concurrently; guard so a
+// slower older response can't overwrite a newer one.
+let latestRequestId = 0;
+
 async function load() {
+  const requestId = ++latestRequestId;
   try {
     const res = await fetch(STATE_URL, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const state = await res.json();
+    if (requestId !== latestRequestId) return;
     document.getElementById("banner").hidden = true;
     render(state);
   } catch (err) {
+    if (requestId !== latestRequestId) return;
     showBanner(`Could not load status: ${err.message}`, "error");
   }
 }

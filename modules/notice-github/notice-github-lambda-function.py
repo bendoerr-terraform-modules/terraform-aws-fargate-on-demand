@@ -28,6 +28,8 @@ import base64
 import datetime
 import json
 import os
+import random
+import time
 import urllib.error
 import urllib.request
 
@@ -180,10 +182,14 @@ def handler(event, context):
             # 409 (sha conflict) / 422 (stale sha): another event committed
             # between our read and write -- re-read and re-apply.
             if err.code in (409, 422) and attempt < MAX_WRITE_ATTEMPTS:
+                # Exponential backoff with jitter so concurrent writers don't
+                # keep re-colliding on every immediate retry.
+                backoff = min(2.0, random.uniform(0, 0.1 * (2**attempt)))
                 print(
                     f"[notice-github] write conflict (HTTP {err.code}), "
-                    f"retrying (attempt {attempt})"
+                    f"retrying in {backoff:.2f}s (attempt {attempt})"
                 )
+                time.sleep(backoff)
                 continue
             _log_http_error(err)
             raise
