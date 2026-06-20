@@ -81,6 +81,8 @@ module "notice_github" {
 
 ## Inputs
 
+<!-- markdownlint-disable MD013 -->
+
 | Name                         | Type     | Default        | Required | Description                                                 |
 | ---------------------------- | -------- | -------------- | :------: | ----------------------------------------------------------- |
 | `context`                    | `object` | n/a            |   yes    | Shared context from `terraform-null-context`.               |
@@ -104,3 +106,5 @@ module "notice_github" {
 | `notice_role_arn`      | ARN of the Lambda IAM role.       |
 | `notice_function_name` | Name of the notice-github Lambda. |
 | `notice_function_arn`  | ARN of the notice-github Lambda.  |
+
+<!-- markdownlint-enable MD013 -->

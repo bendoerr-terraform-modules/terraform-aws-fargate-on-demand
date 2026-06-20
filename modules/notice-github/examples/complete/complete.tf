@@ -16,6 +16,8 @@ module "label_topic" {
 resource "aws_sns_topic" "events" {
   name = module.label_topic.id
   tags = module.label_topic.tags
+  # AWS-managed encryption (no CMK, per house style); satisfies AWS-0095.
+  kms_master_key_id = "alias/aws/sns"
 }
 
 module "notify" {
