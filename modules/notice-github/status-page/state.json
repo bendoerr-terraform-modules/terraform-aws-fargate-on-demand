@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-20T21:40:00Z",
+  "services": {
+    "brd-prod-ue1-gimlet": {
+      "cluster": "brd-prod-ue1-cluster",
+      "app_name": "Gimlet",
+      "url": "https://gimlet.example.com",
+      "status": "active",
+      "updated_at": "2026-06-20T21:39:12Z"
+    },
+    "brd-prod-ue1-foobar": {
+      "cluster": "brd-prod-ue1-cluster",
+      "app_name": "Foobar",
+      "url": "https://foobar.example.com",
+      "status": "inactive",
+      "updated_at": "2026-06-20T19:02:00Z"
+    },
+    "brd-prod-ue1-widget": {
+      "cluster": "brd-prod-ue1-cluster",
+      "app_name": "Widget",
+      "url": "https://widget.example.com",
+      "status": "stop",
+      "updated_at": "2026-06-19T08:15:00Z"
+    }
+  }
+}

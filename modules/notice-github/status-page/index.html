@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Status</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="page-head">
+        <h1>Service Status</h1>
+        <p class="sub">
+          On-demand fargate services. Status is pushed by the
+          <code>notice-github</code> Lambda and read live from
+          <code>state.json</code>.
+        </p>
+      </header>
+
+      <section id="banner" class="banner" hidden></section>
+
+      <section id="services" class="grid" aria-live="polite">
+        <p class="loading">Loading status&hellip;</p>
+      </section>
+
+      <footer class="page-foot">
+        <span id="generated">&nbsp;</span>
+        <span class="dot">&middot;</span>
+        <button id="refresh" type="button">Refresh</button>
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
