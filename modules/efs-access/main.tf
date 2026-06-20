@@ -71,10 +71,10 @@ module "label_transfer" {
 
 # A staging-only scratch bucket: encrypted, fully public-access-blocked, owner
 # enforced. Versioning and access logging are intentionally omitted because the
-# bucket is transient (force_destroy) and holds nothing of record.
-# tfsec:ignore:aws-s3-enable-versioning
-# tfsec:ignore:aws-s3-enable-bucket-logging
-# tfsec:ignore:aws-s3-encryption-customer-key
+# bucket is transient (force_destroy) and holds nothing of record, so access
+# logging and versioning add no value on this scratch storage.
+# trivy:ignore:AVD-AWS-0089
+# trivy:ignore:AVD-AWS-0090
 resource "aws_s3_bucket" "transfer" {
   count         = var.create_transfer_bucket ? 1 : 0
   bucket        = module.label_transfer.id
@@ -91,6 +91,10 @@ resource "aws_s3_bucket_public_access_block" "transfer" {
   restrict_public_buckets = true
 }
 
+# SSE-S3 (AES256), not a customer-managed KMS key: a CMK costs ~$1/mo just to
+# exist, which would break this module's $0-idle goal for a transient scratch
+# bucket. SSE-S3 is the appropriate, free choice here.
+# trivy:ignore:AVD-AWS-0132
 resource "aws_s3_bucket_server_side_encryption_configuration" "transfer" {
   count  = var.create_transfer_bucket ? 1 : 0
   bucket = aws_s3_bucket.transfer[0].id
@@ -150,8 +154,9 @@ resource "aws_iam_role_policy_attachment" "transfer_rw" {
 # ---------------------------------------------------------------------------
 # A public IP is required so the SSM agent can reach Systems Manager over the
 # existing internet gateway (this VPC runs NAT-free, matching the service module).
-# With zero inbound rules and IMDSv2 enforced, SSM stays outbound-only.
-# tfsec:ignore:aws-ec2-no-public-ip
+# With zero inbound rules and IMDSv2 enforced, SSM stays outbound-only, so the
+# public IP (required for SSM egress in this NAT-free VPC) is not an exposure.
+# trivy:ignore:AVD-AWS-0009
 resource "aws_instance" "this" {
   count = local.enabled
 
