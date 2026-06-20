@@ -13,10 +13,14 @@ module "label_topic" {
   name    = "ntc-gh-topic"
 }
 
+# Encrypted with the AWS-managed alias/aws/sns key (satisfies AWS-0095). Org
+# house style is AWS-managed encryption everywhere -- a CMK buys no security over
+# the AWS-managed key while costing ~$1/mo/key -- so AWS-0136 (wants a CMK) is
+# deliberately suppressed rather than "fixed" by bolting on a key.
+# trivy:ignore:AVD-AWS-0136
 resource "aws_sns_topic" "events" {
-  name = module.label_topic.id
-  tags = module.label_topic.tags
-  # AWS-managed encryption (no CMK, per house style); satisfies AWS-0095.
+  name              = module.label_topic.id
+  tags              = module.label_topic.tags
   kms_master_key_id = "alias/aws/sns"
 }
 
