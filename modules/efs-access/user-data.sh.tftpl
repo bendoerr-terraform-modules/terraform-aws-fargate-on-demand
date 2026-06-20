@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Install the EFS mount helper (amazon-efs-utils) so we can mount the access point
+# with TLS + IAM auth -- the same secure path the Fargate service uses.
+dnf install -y amazon-efs-utils
+
+# Mount the EFS access point. The access point roots the mount and enforces its
+# POSIX owner_uid/owner_gid, so files seeded here are owned the way the service expects.
+mkdir -p ${mount_path}
+mount -t efs -o tls,iam,accesspoint=${access_point_id} ${file_system_id}:/ ${mount_path}
+
+# Persist the mount across reboots.
+echo "${file_system_id}:/ ${mount_path} efs _netdev,tls,iam,accesspoint=${access_point_id} 0 0" >> /etc/fstab
+
+%{ if length(ssh_authorized_keys) > 0 ~}
+# Authorize keys for the rsync / scp / sshfs (FUSE-T) / SFTP-over-SSM transfer lanes.
+install -d -m 700 -o ec2-user -g ec2-user /home/ec2-user/.ssh
+%{ for key in ssh_authorized_keys ~}
+echo "${key}" >> /home/ec2-user/.ssh/authorized_keys
+%{ endfor ~}
+chmod 600 /home/ec2-user/.ssh/authorized_keys
+chown ec2-user:ec2-user /home/ec2-user/.ssh/authorized_keys
+%{ endif ~}
