@@ -5,15 +5,16 @@ setup and testing — without weakening the file system's security model.
 
 The data EFS lives in private space behind an access point with IAM auth and transit encryption, so
 there is no direct path to it from a laptop. This module stands up a tiny, **stateless, default-off**
-helper instance that mounts the access point and exposes every practical transfer lane over AWS
-Systems Manager (SSM) — no bastion, no SSH key on a public port, no VPN.
+helper that mounts the access point and is reachable over AWS Systems Manager (SSM) — no bastion, no
+public SSH port, no VPN.
 
 ## On-demand by design ($0 idle)
 
 The helper is gated by `enabled` (default `false`). Because it is stateless — every byte of real data
 lives on EFS — it is **destroyed, not stopped**, when idle. A stopped instance still bills its EBS
-root volume; a destroyed one costs nothing. The IAM role, instance profile, and optional scratch
-bucket are always present (they are free); only the billable instance + volume toggle.
+root volume; a destroyed one costs nothing. The IAM role, instance profile, security group, and
+optional scratch bucket are always present (they are free); only the billable instance + volume
+toggle.
 
 ```hcl
 # bring it up to seed/test
@@ -24,44 +25,37 @@ enabled = false  # then: terraform apply   ($0 idle)
 ```
 
 This follows the NAT-free egress model of the `service` module: the helper gets a **public IP with no
-inbound rules** and reaches SSM over the existing internet gateway, so there is no always-on NAT
-gateway or interface-endpoint cost. With zero inbound rules and IMDSv2 enforced, the public IP is not
-a meaningful exposure — SSM remains outbound-only.
+inbound rules** plus an egress-only security group, and reaches SSM over the existing internet
+gateway — so there is no always-on NAT gateway or interface-endpoint cost. With zero inbound rules
+and IMDSv2 enforced, the public IP is not a meaningful exposure (SSM is outbound-only).
 
 ## Transferring files
 
 Files land owned by the access point's `owner_uid`/`owner_gid` (default `1000:1000`) — the same
-identity the Fargate service runs as — so there is no ownership cleanup afterward.
+identity the Fargate service runs as — so there is no ownership cleanup afterward. There are two
+first-class lanes:
 
-### Bulk seeds (multi-GB worlds, datasets) → `aws s3 sync` or `rsync`
+### 1. Bulk seeds (multi-GB worlds, datasets) → `aws s3 sync`
 
-For anything large, use S3 as a transfer bus (set `create_transfer_bucket = true`). No SSH setup, and
-it is resumable and parallel:
+Set `create_transfer_bucket = true` and use S3 as a transfer bus. No SSH setup, any OS, resumable:
 
 ```bash
 # from your laptop
 aws s3 sync ./world s3://<transfer_bucket>/world/
-# then, in an SSM shell on the helper (see connect_command)
+# then, in an SSM shell on the helper
 aws s3 sync s3://<transfer_bucket>/world/ /mnt/data/world/
 ```
 
-Or `rsync` straight to the helper over an SSM SSH tunnel (needs an entry in `ssh_authorized_keys` and
-the `session-manager-plugin` locally; see the tunnel setup below):
+### 2. The SSM SSH tunnel (interactive, and the base for any client)
+
+The zero-setup form is an interactive shell — no keys, just the `connect_command` output:
 
 ```bash
-rsync -avP ./world efs-helper:/mnt/data/world/
+aws ssm start-session --target <instance_id>
 ```
 
-### Poking at a few files → sshfs (FUSE-T) as a Finder drive, or an SFTP GUI
-
-For browsing or editing a handful of files, mount EFS as a local drive on macOS with
-[FUSE-T](https://www.fuse-t.org/) + sshfs (no kernel extension, no SIP changes) — or point a GUI
-client like Cyberduck/Transmit at the same SSM SSH tunnel. Lovely for convenience; not the path for a
-4 GB blob (sshfs-over-SSM will crawl on bulk transfers — use `aws s3 sync`/`rsync` for those).
-
-### SSH-over-SSM tunnel setup (for rsync / sshfs / SFTP lanes)
-
-Add to `~/.ssh/config`, then the lanes above can address the host as `efs-helper`:
+For file clients, add an SSH key to `ssh_authorized_keys` and put this in `~/.ssh/config` (needs the
+`session-manager-plugin` locally):
 
 ```
 Host efs-helper
@@ -70,8 +64,10 @@ Host efs-helper
   ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p"
 ```
 
-The simplest lane — an interactive shell, no keys required — is just the `connect_command` output:
-`aws ssm start-session --target <instance_id>`.
+> **Layer your own client on the tunnel.** Once `efs-helper` resolves, point whatever you like at it:
+> `rsync -avP ./dir efs-helper:/mnt/data/`, an sshfs/[FUSE-T](https://www.fuse-t.org/) mount for a
+> Finder drive on macOS, or an SFTP GUI (Cyberduck/Transmit). Prefer `aws s3 sync` for multi-GB
+> transfers — sshfs-over-SSM is convenient for a few files, not fast for bulk.
 
 ## Example
 
@@ -97,6 +93,7 @@ See [`examples/complete`](./examples/complete) for a full wiring of VPC + `persi
 | Name                                                                          | Source                                                         | Version |
 | ----------------------------------------------------------------------------- | -------------------------------------------------------------- | ------- |
 | <a name="module_label"></a> [label](#module_label)                            | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.0  |
+| <a name="module_label_egress"></a> [label_egress](#module_label_egress)       | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.0  |
 | <a name="module_label_transfer"></a> [label_transfer](#module_label_transfer) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.0  |
 
 ## Resources
@@ -114,9 +111,12 @@ See [`examples/complete`](./examples/complete) for a full wiring of VPC + `persi
 | [aws_s3_bucket_ownership_controls.transfer](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_ownership_controls)                                     | resource    |
 | [aws_s3_bucket_public_access_block.transfer](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block)                                   | resource    |
 | [aws_s3_bucket_server_side_encryption_configuration.transfer](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource    |
+| [aws_security_group.egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group)                                                                   | resource    |
+| [aws_vpc_security_group_egress_rule.egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule)                                   | resource    |
 | [aws_iam_policy_document.assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document)                                                 | data source |
 | [aws_iam_policy_document.transfer_rw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document)                                                 | data source |
 | [aws_ssm_parameter.al2023](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter)                                                                  | data source |
+| [aws_subnet.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnet)                                                                                  | data source |
 
 ## Inputs
 
@@ -125,7 +125,7 @@ See [`examples/complete`](./examples/complete) for a full wiring of VPC + `persi
 | <a name="input_context"></a> [context](#input_context)                                                                   | Shared Context from Ben's terraform-null-context                                                                                                                                                                                                                                                                                                                 | <pre>object({<br> attributes = list(string)<br> dns_namespace = string<br> environment = string<br> instance = string<br> instance_short = string<br> namespace = string<br> region = string<br> region_short = string<br> role = string<br> role_short = string<br> project = string<br> tags = map(string)<br> })</pre> | n/a           |   yes    |
 | <a name="input_access_point_id"></a> [access_point_id](#input_access_point_id)                                           | EFS access point ID to mount through, from the persistence module's access_point_id output. The access point enforces the POSIX owner_uid/owner_gid on every write.                                                                                                                                                                                              | `string`                                                                                                                                                                                                                                                                                                                  | n/a           |   yes    |
 | <a name="input_access_policy_arn"></a> [access_policy_arn](#input_access_policy_arn)                                     | IAM policy ARN granting EFS ClientMount/ClientWrite scoped to the access point, from the persistence module's access_policy_arn output. Attached to the helper's instance role for the iam mount option.                                                                                                                                                         | `string`                                                                                                                                                                                                                                                                                                                  | n/a           |   yes    |
-| <a name="input_access_security_group"></a> [access_security_group](#input_access_security_group)                         | Security group that permits NFS to the EFS mount targets, from the persistence module's access_security_group output. Attached to the helper so it can reach the file system; its all-egress rule also carries the SSM traffic.                                                                                                                                  | `string`                                                                                                                                                                                                                                                                                                                  | n/a           |   yes    |
+| <a name="input_access_security_group"></a> [access_security_group](#input_access_security_group)                         | Security group that permits NFS to the EFS mount targets, from the persistence module's access_security_group output. Attached to the helper so it can reach the file system. (SSM and package-mirror egress is carried by this module's own egress SG, since data_nfs only permits egress to its own members.)                                                  | `string`                                                                                                                                                                                                                                                                                                                  | n/a           |   yes    |
 | <a name="input_file_system_id"></a> [file_system_id](#input_file_system_id)                                              | EFS file system ID to mount, from the persistence module's file_system_id output.                                                                                                                                                                                                                                                                                | `string`                                                                                                                                                                                                                                                                                                                  | n/a           |   yes    |
 | <a name="input_subnet_id"></a> [subnet_id](#input_subnet_id)                                                             | A PUBLIC subnet to place the helper in. This module follows the NAT-free egress model of the service module: the instance gets a public IP (no inbound rules) and reaches AWS Systems Manager over the existing internet gateway, avoiding an always-on NAT gateway or interface endpoints.                                                                      | `string`                                                                                                                                                                                                                                                                                                                  | n/a           |   yes    |
 | <a name="input_ami_id"></a> [ami_id](#input_ami_id)                                                                      | AMI ID for the helper. Defaults to the latest Amazon Linux 2023 arm64 AMI resolved from the public SSM parameter when null.                                                                                                                                                                                                                                      | `string`                                                                                                                                                                                                                                                                                                                  | `null`        |    no    |
@@ -138,7 +138,7 @@ See [`examples/complete`](./examples/complete) for a full wiring of VPC + `persi
 | <a name="input_owner_gid"></a> [owner_gid](#input_owner_gid)                                                             | POSIX GID the access point enforces on writes, from the persistence module's owner_gid output. Surfaced so operators know which GID will own seeded files.                                                                                                                                                                                                       | `number`                                                                                                                                                                                                                                                                                                                  | `1000`        |    no    |
 | <a name="input_owner_uid"></a> [owner_uid](#input_owner_uid)                                                             | POSIX UID the access point enforces on writes, from the persistence module's owner_uid output. Surfaced so operators know which UID will own seeded files.                                                                                                                                                                                                       | `number`                                                                                                                                                                                                                                                                                                                  | `1000`        |    no    |
 | <a name="input_root_volume_size"></a> [root_volume_size](#input_root_volume_size)                                        | Size in GiB of the encrypted gp3 root volume. The helper is stateless (all data lives on EFS), so this only needs to hold the OS.                                                                                                                                                                                                                                | `number`                                                                                                                                                                                                                                                                                                                  | `8`           |    no    |
-| <a name="input_ssh_authorized_keys"></a> [ssh_authorized_keys](#input_ssh_authorized_keys)                               | Public SSH keys to authorize for the ec2-user. Required only for the rsync / scp / sshfs (FUSE-T) / SFTP-over-SSM transfer lanes; the aws s3 sync lane and an interactive SSM shell need no keys.                                                                                                                                                                | `list(string)`                                                                                                                                                                                                                                                                                                            | `[]`          |    no    |
+| <a name="input_ssh_authorized_keys"></a> [ssh_authorized_keys](#input_ssh_authorized_keys)                               | Public SSH keys to authorize for the ec2-user. Required only for the SSH-over-SSM file clients (rsync / sshfs / SFTP); the aws s3 sync lane and an interactive SSM shell need no keys.                                                                                                                                                                           | `list(string)`                                                                                                                                                                                                                                                                                                            | `[]`          |    no    |
 | <a name="input_transfer_bucket_force_destroy"></a> [transfer_bucket_force_destroy](#input_transfer_bucket_force_destroy) | Allow terraform destroy to delete the scratch transfer bucket even if it still holds objects. Defaults to true because the bucket is staging-only scratch; set to false if you want destroy to refuse on a non-empty bucket.                                                                                                                                     | `bool`                                                                                                                                                                                                                                                                                                                    | `true`        |    no    |
 
 ## Outputs

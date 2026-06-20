@@ -151,6 +151,42 @@ resource "aws_iam_role_policy_attachment" "transfer_rw" {
 }
 
 # ---------------------------------------------------------------------------
+# Egress security group. The persistence data_nfs SG only permits egress to its
+# own members (the mount targets), so the helper needs its own outbound rule to
+# reach the SSM endpoints and the package mirrors. No ingress -- SSM is
+# outbound-only. Always created (an empty SG is free) so idle cost stays at $0.
+# ---------------------------------------------------------------------------
+data "aws_subnet" "this" {
+  id = var.subnet_id
+}
+
+module "label_egress" {
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
+  context = var.context
+  name    = "efs-acc-egr"
+}
+
+resource "aws_security_group" "egress" {
+  name        = module.label_egress.id
+  tags        = module.label_egress.tags
+  vpc_id      = data.aws_subnet.this.vpc_id
+  description = "efs-access helper outbound for SSM + package install; no inbound"
+}
+
+# Unrestricted egress: an SSM-managed helper must reach the SSM endpoints and the
+# AL2023 package mirrors, whose IPs span large, shifting AWS ranges -- the same
+# outbound posture the service module uses. There are zero inbound rules, so the
+# box cannot be reached from outside.
+# trivy:ignore:AVD-AWS-0104
+resource "aws_vpc_security_group_egress_rule" "egress" {
+  security_group_id = aws_security_group.egress.id
+  tags              = module.label_egress.tags
+  description       = "All outbound for SSM registration and package install"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = -1
+}
+
+# ---------------------------------------------------------------------------
 # The helper itself. Gated by var.enabled -> destroy, don't stop, for true $0
 # idle (a stopped instance still bills its EBS volume).
 # ---------------------------------------------------------------------------
@@ -166,7 +202,7 @@ resource "aws_instance" "this" {
   instance_type               = var.instance_type
   subnet_id                   = var.subnet_id
   associate_public_ip_address = var.assign_public_ip
-  vpc_security_group_ids      = [var.access_security_group]
+  vpc_security_group_ids      = [var.access_security_group, aws_security_group.egress.id]
   iam_instance_profile        = aws_iam_instance_profile.this.name
   user_data                   = local.user_data
 

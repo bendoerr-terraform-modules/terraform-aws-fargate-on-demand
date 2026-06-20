@@ -45,7 +45,7 @@ variable "access_point_id" {
 
 variable "access_security_group" {
   type        = string
-  description = "Security group that permits NFS to the EFS mount targets, from the persistence module's access_security_group output. Attached to the helper so it can reach the file system; its all-egress rule also carries the SSM traffic."
+  description = "Security group that permits NFS to the EFS mount targets, from the persistence module's access_security_group output. Attached to the helper so it can reach the file system. (SSM and package-mirror egress is carried by this module's own egress SG, since data_nfs only permits egress to its own members.)"
 }
 
 variable "access_policy_arn" {
