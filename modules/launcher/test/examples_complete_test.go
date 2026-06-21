@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/kr/pretty"
@@ -69,6 +70,10 @@ func TestDefaults(t *testing.T) {
 
 	_, _ = pretty.Print(descSvcs.Services)
 
+	if len(descSvcs.Services) == 0 {
+		t.Fatal("ECS service not found: ", ecsServiceName)
+	}
+
 	if descSvcs.Services[0].DesiredCount != 0 {
 		t.Fatal("service already has desired count greater than zero: ", descSvcs.Services[0].DesiredCount)
 	}
@@ -101,24 +106,29 @@ func TestDefaults(t *testing.T) {
 
 	_, _ = pretty.Print(outEvent.RejectedLogEventsInfo)
 
-	fmt.Println("sleeping now")
-	time.Sleep(1 * 60 * time.Second)
-	fmt.Println("awake")
-
-	descSvcs, err = ecsSvc.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
-		Services: []string{ecsServiceName},
-		Cluster:  &ecsClusterName,
+	// Poll for the launcher to scale the ECS service to desired count 1 instead of a
+	// fixed sleep: the CloudWatch Logs -> subscription filter -> launcher Lambda ->
+	// ECS UpdateService chain occasionally takes longer than a flat 60s when the sandbox
+	// account is busy. Retry up to 3 minutes, succeeding the moment the count reaches 1.
+	fmt.Println("waiting for the launcher to scale the ECS service to desired count 1")
+	retry.DoWithRetry(t, "wait for ECS service desired count to reach 1", 18, 10*time.Second, func() (string, error) {
+		descSvcs, err = ecsSvc.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
+			Services: []string{ecsServiceName},
+			Cluster:  &ecsClusterName,
+		})
+		if err != nil {
+			return "", err
+		}
+		if len(descSvcs.Services) == 0 {
+			return "", fmt.Errorf("ECS service not found yet: %s", ecsServiceName)
+		}
+		if descSvcs.Services[0].DesiredCount != 1 {
+			return "", fmt.Errorf("service does not have correct desired count yet, got: %d", descSvcs.Services[0].DesiredCount)
+		}
+		return "ECS service reached desired count 1", nil
 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	_, _ = pretty.Print(descSvcs.Services)
-
-	if descSvcs.Services[0].DesiredCount != 1 {
-		t.Fatal("service does not have correct desired count, got: ", descSvcs.Services[0].DesiredCount)
-	}
 }
 
 func makediff(want interface{}, got interface{}) string {
