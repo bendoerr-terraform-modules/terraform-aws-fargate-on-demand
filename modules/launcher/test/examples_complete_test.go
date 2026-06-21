@@ -70,6 +70,10 @@ func TestDefaults(t *testing.T) {
 
 	_, _ = pretty.Print(descSvcs.Services)
 
+	if len(descSvcs.Services) == 0 {
+		t.Fatal("ECS service not found: ", ecsServiceName)
+	}
+
 	if descSvcs.Services[0].DesiredCount != 0 {
 		t.Fatal("service already has desired count greater than zero: ", descSvcs.Services[0].DesiredCount)
 	}
@@ -114,6 +118,9 @@ func TestDefaults(t *testing.T) {
 		})
 		if err != nil {
 			return "", err
+		}
+		if len(descSvcs.Services) == 0 {
+			return "", fmt.Errorf("ECS service not found yet: %s", ecsServiceName)
 		}
 		if descSvcs.Services[0].DesiredCount != 1 {
 			return "", fmt.Errorf("service does not have correct desired count yet, got: %d", descSvcs.Services[0].DesiredCount)
