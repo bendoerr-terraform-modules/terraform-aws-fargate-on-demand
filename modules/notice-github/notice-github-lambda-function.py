@@ -15,8 +15,8 @@ Design notes (the contract with the status page):
 * A ``schema_version`` rides at the top so the page can render old and new
   files when the shape evolves.
 * Two near-simultaneous events read the same blob sha; the first PUT wins and
-  the loser gets HTTP 409/422. We re-read and re-apply up to MAX_WRITE_ATTEMPTS
-  so a concurrent event can't clobber another service's update.
+  the slower write gets HTTP 409/422. We re-read and re-apply up to
+  MAX_WRITE_ATTEMPTS so a concurrent event can't clobber another service's update.
 
 The GitHub token is supplied either literally or as ``param:<ssm-name>``; in the
 SSM form it is fetched at runtime with decryption (mirrors notice-discord).
@@ -54,19 +54,15 @@ if github_token is None:
 if github_repo is None:
     raise ValueError("missing GITHUB_REPO environment variable")
 
-# Create a printable representation of the token for logs
-if github_token.startswith("param:"):
-    printable_token = github_token
-else:
-    printable_token = (
-        github_token[:3] + ("*" * max(0, len(github_token) - 5)) + github_token[-2:]
-    )
+# Log only the token SOURCE, never token-derived material (a masked token still
+# leaks entropy, and the param: form would reveal the SSM parameter path).
+token_source = "ssm-parameter" if github_token.startswith("param:") else "literal-env"
 
 # Print the current configuration
 print(f"[notice-github] GITHUB_REPO     = '{github_repo}'")
 print(f"[notice-github] GITHUB_BRANCH   = '{github_branch}'")
 print(f"[notice-github] STATE_FILE_PATH = '{state_file_path}'")
-print(f"[notice-github] GITHUB_TOKEN    = '{printable_token}'")
+print(f"[notice-github] GITHUB_TOKEN_SRC = '{token_source}'")
 print(f"[notice-github] NOTIFY_APP_NAME = '{notify_app_name}'")
 print(f"[notice-github] NOTIFY_APP_URL  = '{notify_app_url}'")
 
@@ -99,7 +95,7 @@ def _gh_request(method, path, body=None):
             "Content-Type": "application/json",
         },
     )
-    with urllib.request.urlopen(req) as res:
+    with urllib.request.urlopen(req, timeout=10) as res:
         raw = res.read().decode()
         return res.status, (json.loads(raw) if raw else {})
 

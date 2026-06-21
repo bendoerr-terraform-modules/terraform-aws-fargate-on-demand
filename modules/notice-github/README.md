@@ -22,8 +22,8 @@ event the Lambda:
 3. Commits the whole document back in a single commit (atomic file replace).
 
 Two near-simultaneous events read the same blob SHA; the first commit wins and
-the loser gets HTTP 409/422, so the Lambda re-reads and re-applies (up to five
-attempts). A Pages build therefore never fetches a half-written file.
+the slower write gets HTTP 409/422, so the Lambda re-reads and re-applies (up to
+five attempts). A Pages build therefore never fetches a half-written file.
 
 ## The `state.json` contract
 

@@ -35,6 +35,13 @@ resource "aws_lambda_function" "notice" {
   tracing_config {
     mode = "Active"
   }
+
+  lifecycle {
+    precondition {
+      condition     = !startswith(var.github_token, "param:") || var.github_token_ssm_param_arn != null
+      error_message = "When github_token uses 'param:<name>', github_token_ssm_param_arn must be set so the Lambda role can read and decrypt that parameter."
+    }
+  }
 }
 
 resource "aws_lambda_permission" "notice_sns_invoke" {
@@ -49,6 +56,8 @@ resource "aws_sns_topic_subscription" "events" {
   endpoint  = aws_lambda_function.notice.arn
   protocol  = "lambda"
   topic_arn = var.event_topic_arn
+  # Subscribe only after SNS may invoke the Lambda, else early events drop.
+  depends_on = [aws_lambda_permission.notice_sns_invoke]
 }
 
 resource "aws_cloudwatch_log_group" "notice" {
