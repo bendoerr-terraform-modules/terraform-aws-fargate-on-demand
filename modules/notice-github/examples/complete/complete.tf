@@ -7,6 +7,11 @@ variable "github_repo" {
   type = string
 }
 
+variable "state_file_path" {
+  type    = string
+  default = "state.json"
+}
+
 module "label_topic" {
   source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
   context = module.context.shared
@@ -31,6 +36,7 @@ module "notify" {
 
   github_token    = var.github_token
   github_repo     = var.github_repo
+  state_file_path = var.state_file_path
   event_topic_arn = aws_sns_topic.events.arn
   notify_app_name = "Terratest - Complete"
   notify_app_url  = "https://example.com"

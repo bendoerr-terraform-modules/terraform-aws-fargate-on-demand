@@ -29,6 +29,7 @@ jobs:
           - modules/persistence/test
           - modules/notice-discord/test
           - modules/dns-record/test
+          - modules/notice-github/test
 
     steps:
       - name: "Harden Runner"
@@ -72,6 +73,8 @@ jobs:
           TF_VAR_assume_principal: "arn:aws:iam::234656776442:role/brd-sndbx-ue1-core-apply"
           DISCORD_BOT_AUTH_TOKEN: ${{ secrets.DISCORD_BOT_AUTH_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GITHUB_STATUS_REPO: bendoerr-terraform-modules/notice-github-sandbox
+          NOTICE_GITHUB_TOKEN: ${{ secrets.NOTICE_GITHUB_TOKEN }}
 
       - name: "Convert Test Results"
         working-directory: ${{ matrix.project }}
