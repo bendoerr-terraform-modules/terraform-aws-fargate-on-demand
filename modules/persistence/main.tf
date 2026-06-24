@@ -96,6 +96,7 @@ resource "aws_security_group" "data_nfs" {
 resource "aws_vpc_security_group_ingress_rule" "data_nfs_encrypted" {
   security_group_id            = aws_security_group.data_nfs.id
   referenced_security_group_id = aws_security_group.data_nfs.id
+  description                  = "Allow encrypted NFS (TLS stunnel) from the data SG to itself"
   ip_protocol                  = "TCP"
   from_port                    = 2999
   to_port                      = 2999
@@ -105,6 +106,7 @@ resource "aws_vpc_security_group_ingress_rule" "data_nfs_encrypted" {
 resource "aws_vpc_security_group_ingress_rule" "data_nfs" {
   security_group_id            = aws_security_group.data_nfs.id
   referenced_security_group_id = aws_security_group.data_nfs.id
+  description                  = "Allow NFS (2049) from the data SG to itself"
   ip_protocol                  = "TCP"
   from_port                    = 2049
   to_port                      = 2049
@@ -114,6 +116,7 @@ resource "aws_vpc_security_group_ingress_rule" "data_nfs" {
 resource "aws_vpc_security_group_egress_rule" "data_nfs" {
   security_group_id            = aws_security_group.data_nfs.id
   referenced_security_group_id = aws_security_group.data_nfs.id
+  description                  = "Allow all egress from the data SG to itself"
   ip_protocol                  = -1
   tags                         = module.label_data_nfs.tags
 }
