@@ -40,6 +40,35 @@ TODO
 }
 ```
 
+## Version Constraints
+
+This repository is a **monorepo** of related Terraform modules under
+[`modules/`](modules/); each submodule declares its own provider requirements in
+its own `versions.tf`. Those submodules use **pessimistic version constraints**
+(`~>`) for the AWS provider:
+
+```hcl
+required_providers {
+  aws = {
+    source  = "hashicorp/aws"
+    version = "~> 6.0" # Allows 6.x, prevents 7.0
+  }
+}
+```
+
+**Why pessimistic constraints?**
+
+- Prevents unexpected breaking changes from major provider updates
+- Ensures consistent behavior across environments
+- Makes upgrade impact predictable and controllable
+
+When AWS provider v7.0 releases, the affected submodules will require an update to
+support it. That is intentional — we prefer explicit, tested upgrades over
+automatic major version bumps. Consume the individual submodules under
+[`modules/`](modules/); Terraform's dependency resolver will select an AWS
+provider version compatible with both your configuration and the submodule's
+constraints.
+
 ## Requirements
 
 TODO
