@@ -18,8 +18,8 @@ modules use. Each event carries `{ Event, Cluster, Service, Topic }`. On every
 event the Lambda:
 
 1. Reads the current `state.json` from the target repo (GitHub contents API).
-2. Upserts the **one** emitting service's entry, keyed by ECS service name.
-3. Commits the whole document back in a single commit (atomic file replace).
+1. Upserts the **one** emitting service's entry, keyed by ECS service name.
+1. Commits the whole document back in a single commit (atomic file replace).
 
 Two near-simultaneous events read the same blob SHA; the first commit wins and
 the slower write gets HTTP 409/422, so the Lambda re-reads and re-applies (up to
