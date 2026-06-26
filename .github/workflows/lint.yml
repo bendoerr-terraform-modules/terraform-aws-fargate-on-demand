@@ -72,8 +72,11 @@ jobs:
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: create package.json
+        # Pinned exact (not a floating ^range): a prettier minor bump must not
+        # silently reformat the tree out from under contributors. Markdown is
+        # excluded from prettier via .prettierignore — mdformat owns it.
         run: |
-          echo -e '{"devDependencies": {"prettier": "^3.1.0"}}' > package.json
+          echo -e '{"devDependencies": {"prettier": "3.3.3"}}' > package.json
       - name: prettier
         uses: EPMatt/reviewdog-action-prettier@f691104cbeb4b0299df971275444c64be93c03ae # v1.3.0
         with:
@@ -158,3 +161,27 @@ jobs:
           reporter: github-pr-review
           fail_level: error
           filter_mode: file
+  mdformat:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          # No git ops after checkout — don't keep the repo token in .git/config
+          # while we pip-install and run mdformat.
+          persist-credentials: false
+
+      # mdformat (0.7.17) is the org's authoritative markdown formatter — prettier
+      # is excluded from markdown via .prettierignore. This repo has no pre-commit
+      # framework, so this CI check enforces mdformat-clean markdown across the root
+      # and submodule READMEs.
+      - name: mdformat --check
+        run: |
+          python3 -m pip install --quiet 'mdformat==0.7.17'
+          python3 -m mdformat --check .

@@ -1,26 +1,27 @@
 <!-- BEGIN_TF_DOCS -->
+
 ## Requirements
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.0 |
-| <a name="requirement_archive"></a> [archive](#requirement\_archive) | ~> 2.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement_terraform) | ~> 1.0 |
+| <a name="requirement_archive"></a> [archive](#requirement_archive) | ~> 2.0 |
+| <a name="requirement_aws"></a> [aws](#requirement_aws) | ~> 5.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_archive"></a> [archive](#provider\_archive) | 2.4.0 |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 5.25.0 |
+| <a name="provider_archive"></a> [archive](#provider_archive) | 2.4.0 |
+| <a name="provider_aws"></a> [aws](#provider_aws) | 5.25.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_label_ecs_svc_update"></a> [label\_ecs\_svc\_update](#module\_label\_ecs\_svc\_update) | git@github.com:bendoerr/terraform-null-label | v0.4.0 |
-| <a name="module_label_launcher"></a> [label\_launcher](#module\_label\_launcher) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v0.4.0 |
-| <a name="module_label_launcher_logs"></a> [label\_launcher\_logs](#module\_label\_launcher\_logs) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v0.4.0 |
+| <a name="module_label_ecs_svc_update"></a> [label_ecs_svc_update](#module_label_ecs_svc_update) | git@github.com:bendoerr/terraform-null-label | v0.4.0 |
+| <a name="module_label_launcher"></a> [label_launcher](#module_label_launcher) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v0.4.0 |
+| <a name="module_label_launcher_logs"></a> [label_launcher_logs](#module_label_launcher_logs) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v0.4.0 |
 
 ## Resources
 
@@ -48,25 +49,26 @@
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_context"></a> [context](#input\_context) | Shared Context from Ben's terraform-null-context | <pre>object({<br>    attributes     = list(string)<br>    dns_namespace  = string<br>    environment    = string<br>    instance       = string<br>    instance_short = string<br>    namespace      = string<br>    region         = string<br>    region_short   = string<br>    role           = string<br>    role_short     = string<br>    project        = string<br>    tags           = map(string)<br>  })</pre> | n/a | yes |
-| <a name="input_ecs_cluster"></a> [ecs\_cluster](#input\_ecs\_cluster) | Name of the ECS Cluster that the service is in | `string` | `null` | no |
-| <a name="input_ecs_service"></a> [ecs\_service](#input\_ecs\_service) | Name of the ECS service to update the desired count for | `string` | `null` | no |
-| <a name="input_lambda_env_kms_arn"></a> [lambda\_env\_kms\_arn](#input\_lambda\_env\_kms\_arn) | n/a | `string` | `null` | no |
-| <a name="input_lambda_logs_kms_arn"></a> [lambda\_logs\_kms\_arn](#input\_lambda\_logs\_kms\_arn) | n/a | `string` | `null` | no |
-| <a name="input_lambda_logs_retention"></a> [lambda\_logs\_retention](#input\_lambda\_logs\_retention) | Number of days to keep logs from the AWS Lambda launcher | `number` | `3` | no |
-| <a name="input_lambda_python_runtime"></a> [lambda\_python\_runtime](#input\_lambda\_python\_runtime) | Overwrite the AWS Lambda python runtime | `string` | `"python3.11"` | no |
-| <a name="input_lambda_timeout"></a> [lambda\_timeout](#input\_lambda\_timeout) | Timeout in seconds of the Launcher Lambda, there shouldn't be a huge reason to change thi.s | `number` | `3` | no |
-| <a name="input_lambda_tracing_config"></a> [lambda\_tracing\_config](#input\_lambda\_tracing\_config) | X-Ray Lambda Tracing Mode | `string` | `"PassThrough"` | no |
-| <a name="input_trigger_cloudwatch_group"></a> [trigger\_cloudwatch\_group](#input\_trigger\_cloudwatch\_group) | n/a | `string` | n/a | yes |
-| <a name="input_trigger_filter_pattern"></a> [trigger\_filter\_pattern](#input\_trigger\_filter\_pattern) | A CloudWatch log subscription filter pattern. This filter pattern will be used to limit the logs which invoke the launcher lambda. | `string` | `""` | no |
+| <a name="input_context"></a> [context](#input_context) | Shared Context from Ben's terraform-null-context | <pre>object({<br>    attributes     = list(string)<br>    dns_namespace  = string<br>    environment    = string<br>    instance       = string<br>    instance_short = string<br>    namespace      = string<br>    region         = string<br>    region_short   = string<br>    role           = string<br>    role_short     = string<br>    project        = string<br>    tags           = map(string)<br>  })</pre> | n/a | yes |
+| <a name="input_ecs_cluster"></a> [ecs_cluster](#input_ecs_cluster) | Name of the ECS Cluster that the service is in | `string` | `null` | no |
+| <a name="input_ecs_service"></a> [ecs_service](#input_ecs_service) | Name of the ECS service to update the desired count for | `string` | `null` | no |
+| <a name="input_lambda_env_kms_arn"></a> [lambda_env_kms_arn](#input_lambda_env_kms_arn) | n/a | `string` | `null` | no |
+| <a name="input_lambda_logs_kms_arn"></a> [lambda_logs_kms_arn](#input_lambda_logs_kms_arn) | n/a | `string` | `null` | no |
+| <a name="input_lambda_logs_retention"></a> [lambda_logs_retention](#input_lambda_logs_retention) | Number of days to keep logs from the AWS Lambda launcher | `number` | `3` | no |
+| <a name="input_lambda_python_runtime"></a> [lambda_python_runtime](#input_lambda_python_runtime) | Overwrite the AWS Lambda python runtime | `string` | `"python3.11"` | no |
+| <a name="input_lambda_timeout"></a> [lambda_timeout](#input_lambda_timeout) | Timeout in seconds of the Launcher Lambda, there shouldn't be a huge reason to change thi.s | `number` | `3` | no |
+| <a name="input_lambda_tracing_config"></a> [lambda_tracing_config](#input_lambda_tracing_config) | X-Ray Lambda Tracing Mode | `string` | `"PassThrough"` | no |
+| <a name="input_trigger_cloudwatch_group"></a> [trigger_cloudwatch_group](#input_trigger_cloudwatch_group) | n/a | `string` | n/a | yes |
+| <a name="input_trigger_filter_pattern"></a> [trigger_filter_pattern](#input_trigger_filter_pattern) | A CloudWatch log subscription filter pattern. This filter pattern will be used to limit the logs which invoke the launcher lambda. | `string` | `""` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_lambda_arn"></a> [lambda\_arn](#output\_lambda\_arn) | AWS Lambda ARN of the launcher function |
-| <a name="output_lambda_id"></a> [lambda\_id](#output\_lambda\_id) | AWS Lambda ID of the launcher function |
-| <a name="output_lambda_log_group_id"></a> [lambda\_log\_group\_id](#output\_lambda\_log\_group\_id) | The CloudWatch Log Group ID for the logs from the AWS Lambda function |
-| <a name="output_lambda_role_arn"></a> [lambda\_role\_arn](#output\_lambda\_role\_arn) | The IAM Role of the AWS Lambda launcher function |
-| <a name="output_lambda_role_id"></a> [lambda\_role\_id](#output\_lambda\_role\_id) | The IAM Role of the AWS Lambda launcher function |
+| <a name="output_lambda_arn"></a> [lambda_arn](#output_lambda_arn) | AWS Lambda ARN of the launcher function |
+| <a name="output_lambda_id"></a> [lambda_id](#output_lambda_id) | AWS Lambda ID of the launcher function |
+| <a name="output_lambda_log_group_id"></a> [lambda_log_group_id](#output_lambda_log_group_id) | The CloudWatch Log Group ID for the logs from the AWS Lambda function |
+| <a name="output_lambda_role_arn"></a> [lambda_role_arn](#output_lambda_role_arn) | The IAM Role of the AWS Lambda launcher function |
+| <a name="output_lambda_role_id"></a> [lambda_role_id](#output_lambda_role_id) | The IAM Role of the AWS Lambda launcher function |
+
 <!-- END_TF_DOCS -->

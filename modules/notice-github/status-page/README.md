@@ -25,9 +25,9 @@ Lambda writes to (`github_repo`).
 1. Copy `index.html`, `app.js`, and `styles.css` into that repo (e.g. a `docs/`
    folder or the repo root). The Lambda writes `state.json` alongside them
    (`state_file_path`).
-2. Enable GitHub Pages on that repo (Settings → Pages) pointed at the branch and
+1. Enable GitHub Pages on that repo (Settings → Pages) pointed at the branch and
    folder you used.
-3. Open the published URL. As services emit task-state events the Lambda commits
+1. Open the published URL. As services emit task-state events the Lambda commits
    `state.json` and the page reflects it on the next refresh.
 
 > The bundled `state.json` is sample data for local preview. In production the
