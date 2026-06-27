@@ -46,6 +46,7 @@ jobs:
             234656776442.s3-control.us-east-1.amazonaws.com:443
             acm.us-east-1.amazonaws.com:443
             apigateway.us-east-1.amazonaws.com:443
+            api.github.com:443
             budgets.amazonaws.com:443
             checkpoint-api.hashicorp.com:443
             cloudfront.amazonaws.com:443
