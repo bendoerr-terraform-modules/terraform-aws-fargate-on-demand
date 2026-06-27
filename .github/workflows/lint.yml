@@ -37,6 +37,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
@@ -83,6 +85,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: trivy
@@ -120,6 +124,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: create package.json
@@ -161,6 +167,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: misspell
@@ -199,6 +207,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: alex
@@ -236,6 +246,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: markdownlint
@@ -271,6 +283,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: actionlint
@@ -306,6 +320,8 @@ jobs:
             registry.npmjs.org:443
             release-assets.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
+            checkpoint-api.hashicorp.com:443
+            releases.hashicorp.com:443
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
