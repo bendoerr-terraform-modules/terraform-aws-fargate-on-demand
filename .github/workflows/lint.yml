@@ -23,16 +23,16 @@ jobs:
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+      - uses: step-security/ssh-agent@04004923389ca1b759b2bee0005f2db1253aeb15 # v0.10.0
         with:
           ssh-private-key: |
             ${{ secrets.ORG_ACCESS_SSH_KEY }}
 
       - name: "Setup Terraform"
-        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e #v4.0.1
+        uses: step-security/setup-terraform@11f45fe036ccfd27d231861d38b183d405b059a9 # v4.0.0
 
       - name: tflint
-        uses: reviewdog/action-tflint@54a5e5aed57dcfbb4662ec548de876df33d6288d # v1.25.0
+        uses: step-security/action-tflint@285fe25934512644274b253b424a5d4b8f1c2dc5 # v1.25.0
         with:
           github_token: ${{ github.token }}
           reporter: github-pr-review
@@ -96,7 +96,7 @@ jobs:
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: misspell
-        uses: reviewdog/action-misspell@d6429416b12b09b4e2768307d53bef58d172e962 # v1.27.0
+        uses: step-security/action-misspell@85d31a4bcbf1c3d99e4f224c148330e45b5a63cf # v1.27.2
         with:
           github_token: ${{ github.token }}
           reporter: github-pr-review
@@ -137,7 +137,7 @@ jobs:
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: markdownlint
-        uses: reviewdog/action-markdownlint@3667398db9118d7e78f7a63d10e26ce454ba5f58 # v0.26.2
+        uses: step-security/action-markdownlint@7eff996c965b6b4a8575f7971d970fc40479c321 # v0.26.9
         with:
           github_token: ${{ github.token }}
           reporter: github-pr-review
@@ -155,7 +155,7 @@ jobs:
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: actionlint
-        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
+        uses: step-security/action-actionlint@c3aa382d371c6b05513ae5907d4f77713e21813c # v1.72.0
         with:
           github_token: ${{ github.token }}
           reporter: github-pr-review
