@@ -47,10 +47,10 @@ jobs:
           cache: true
 
       - name: "Setup Terraform"
-        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e #v4.0.1
+        uses: step-security/setup-terraform@11f45fe036ccfd27d231861d38b183d405b059a9 # v4.0.0
 
       - name: "Setup SSH Agent"
-        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+        uses: step-security/ssh-agent@04004923389ca1b759b2bee0005f2db1253aeb15 # v0.10.0
         with:
           ssh-private-key: |
             ${{ secrets.ORG_ACCESS_SSH_KEY }}
@@ -83,7 +83,7 @@ jobs:
         run: go-junit-report -set-exit-code < results.out > results.xml
 
       - name: "Upload Test Results"
-        uses: test-summary/action@37b508cfee6d4d080eedd00b5bb240a6a784a6a5 # v2.6
+        uses: step-security/test-summary-action@67391420afc3eba57f4cb249a1a5a677e0eacd9e # v2.4.3
         if: always() && hashFiles(format('{0}/results.xml', matrix.project)) != ''
         with:
           paths: ${{ matrix.project }}/results.xml
