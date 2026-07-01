@@ -1,4 +1,4 @@
-module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/test
+module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/modules/persistence/test
 
 go 1.26
 
