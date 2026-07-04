@@ -1,7 +1,10 @@
 # Thin caller -> reusable lint in bendoerr-terraform-modules/workflows (SHA-pinned, big-blast).
-# Subset: golangci + terraform_docs gated OFF (baseline runs neither; golangci drift-fix is a SEPARATE later PR). Pins neither knob -> empty.
-# egress uses reusable default (superset of this repo's set -> behavior-preserving). Lint isn't a
-# required check -> rename cosmetic; proof is the fidelity-diff vs this repo's last per-repo run.
+# golangci ON via the reusable's golangci_workdirs matrix: this repo is multi-module (6 modules,
+# each modules/<m>/test/go.mod), so golangci runs once per module dir (go_version_file derived
+# <workdir>/go.mod, fail-fast off). Each module carries its own test/.golangci.yml (org strict preset,
+# local-prefixes = this repo's umbrella path). terraform_docs stays OFF (baseline runs none; separate
+# drift-fix). Pins neither tflint/markdownlint knob -> empty (action defaults).
+# egress uses reusable default (superset of this repo's set -> behavior-preserving).
 name: Lint
 
 on:
@@ -19,9 +22,10 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@1c9572cfd56a2aa0b7bd89afe37545ea4c310e40
+    uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@bf99d2f70639b75a3dfb6f2e400200b2d973070d
     with:
-      golangci: false
+      golangci: true
+      golangci_workdirs: '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test"]'
       terraform_docs: false
       tflint_version: ""
       markdownlint_flags: ""
