@@ -4,7 +4,8 @@
 # <workdir>/go.mod, fail-fast off). Each module carries its own test/.golangci.yml (org strict preset,
 # local-prefixes = this repo's umbrella path). terraform_docs stays OFF (baseline runs none; separate
 # drift-fix). Pins neither tflint/markdownlint knob -> empty (action defaults).
-# egress uses reusable default (superset of this repo's set -> behavior-preserving).
+# egress uses reusable default (functionality-preserving superset of this repo's set; the default
+# additionally allows Go toolchain download endpoints since workflows#16 -> wider egress than before).
 name: Lint
 
 on:
@@ -22,7 +23,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@bf99d2f70639b75a3dfb6f2e400200b2d973070d
+    uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@93e740f8fea20eda37207f4afd2908325972851e
     with:
       golangci: true
       golangci_workdirs: '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test"]'
