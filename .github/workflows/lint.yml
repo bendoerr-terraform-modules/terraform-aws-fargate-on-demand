@@ -4,7 +4,8 @@
 # <workdir>/go.mod, fail-fast off). Each module carries its own test/.golangci.yml (org strict preset,
 # local-prefixes = this repo's umbrella path). terraform_docs stays OFF (baseline runs none; separate
 # drift-fix). Pins neither tflint/markdownlint knob -> empty (action defaults).
-# egress uses reusable default (superset of this repo's set -> behavior-preserving; incl. Go toolchain download hosts since workflows#16).
+# egress uses reusable default (functionality-preserving superset of this repo's set; the default
+# additionally allows Go toolchain download endpoints since workflows#16 -> wider egress than before).
 name: Lint
 
 on:
