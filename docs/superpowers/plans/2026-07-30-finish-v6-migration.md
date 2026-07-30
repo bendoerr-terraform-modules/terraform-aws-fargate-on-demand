@@ -105,7 +105,7 @@ for m in dns-record efs-access launcher notice-discord notice-github notice-para
 done
 # survivor on 1.9.0
 (cd modules/service && rm -rf .terraform && "$SCRATCH/tfbin/1.9.0/terraform" init -backend=false -input=false && "$SCRATCH/tfbin/1.9.0/terraform" validate) || fails="$fails service"
-if [ -n "$fails" ]; then echo "FLOOR PROOF FAILED:$fails"; else echo "all floors proven"; fi
+if [ -n "$fails" ]; then echo "FLOOR PROOF FAILED:$fails"; exit 1; else echo "all floors proven"; fi
 ```
 
 Expected: every module prints `Success! The configuration is valid.` on its pinned floor, and the final line is `all floors proven`. **If the step prints `FLOOR PROOF FAILED`, the task is NOT done** — triage each named module below; do not proceed to Step 6.
@@ -304,7 +304,7 @@ alias MDFMT='uvx --from mdformat==0.7.17 mdformat'
 uvx --from mdformat==0.7.17 mdformat --version   # expect 0.7.17
 ```
 
-- \[ \] **Step 2: Regenerate each submodule README with the canon chain (terraform-docs → mdformat)**
+- \[ \] **Step 2: Regenerate each submodule README with the canon chain (terraform-docs → mdformat), then STAGE pass 1**
 
 ```bash
 cd "$REPO"
@@ -312,11 +312,15 @@ for m in launcher dns-record efs-access; do
   "$SCRATCH/terraform-docs" markdown table --indent 3 --output-file README.md --output-mode inject "modules/$m"
   uvx --from mdformat==0.7.17 mdformat "modules/$m/README.md"
 done
+# Stage pass 1 so Step 3's idempotency check measures pass-2-vs-pass-1 (worktree vs index),
+# NOT pass-1's legitimate truth changes vs HEAD (which are never "quiet"). Without this the
+# idempotency gate is a guaranteed false STOP. Step 5's commit re-adds these anyway.
+git add modules/launcher/README.md modules/dns-record/README.md modules/efs-access/README.md
 ```
 
 (`--output-mode inject` replaces only the content between the `<!-- BEGIN_TF_DOCS -->`/`<!-- END_TF_DOCS -->` markers; mdformat then canonicalizes the whole file.)
 
-- \[ \] **Step 3: Prove idempotency (the real anti-churn gate — regen twice, second pass must be a no-op)**
+- \[ \] **Step 3: Prove idempotency (the real anti-churn gate — regen a 2nd time, must be a no-op vs the staged pass 1)**
 
 ```bash
 cd "$REPO"
@@ -324,7 +328,12 @@ for m in launcher dns-record efs-access; do
   "$SCRATCH/terraform-docs" markdown table --indent 3 --output-file README.md --output-mode inject "modules/$m"
   uvx --from mdformat==0.7.17 mdformat "modules/$m/README.md"
 done
-if git diff --quiet -- modules/*/README.md; then echo "IDEMPOTENT ✓ (second pass no-op)"; else echo "NOT IDEMPOTENT — chain unstable, STOP"; git --no-pager diff --stat -- modules/*/README.md; fi
+# worktree (pass 2) vs index (pass 1, staged in Step 2) — quiet ⇒ chain is stable/idempotent:
+if git diff --quiet -- modules/launcher/README.md modules/dns-record/README.md modules/efs-access/README.md; then
+  echo "IDEMPOTENT ✓ (pass 2 == pass 1)"
+else
+  echo "NOT IDEMPOTENT — chain unstable, STOP"; git --no-pager diff --stat -- modules/launcher/README.md modules/dns-record/README.md modules/efs-access/README.md; exit 1
+fi
 ```
 
 Expected: `IDEMPOTENT ✓`. (Kitten verified this on all three; if it fails, the tool versions are wrong.)
