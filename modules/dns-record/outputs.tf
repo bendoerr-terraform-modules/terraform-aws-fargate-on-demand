@@ -35,7 +35,7 @@ output "record_control_policy_arn" {
 
 output "query_log_group_name" {
   value       = var.configure_query_log ? (var.create_query_log_group ? aws_cloudwatch_log_group.query[0].name : replace(var.query_log_group_arn, "^.*log-group:", "")) : ""
-  description = "ARN of the CloudWatch Log Group that will receive the DNS Query logs"
+  description = "Name of the CloudWatch Log Group that will receive the DNS Query logs"
 }
 
 output "query_log_group_arn" {

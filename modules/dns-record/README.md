@@ -66,7 +66,7 @@ Route53 record plus DNS query logging — the query-log stream is what wakes the
 | ---- | ----------- |
 | <a name="output_query_log_group_arn"></a> [query_log_group_arn](#output_query_log_group_arn) | ARN of the CloudWatch Log Group that will receive the DNS Query logs |
 | <a name="output_query_log_group_filter_patten"></a> [query_log_group_filter_patten](#output_query_log_group_filter_patten) | A CloudWatch filter pattern that will match this DNS record only |
-| <a name="output_query_log_group_name"></a> [query_log_group_name](#output_query_log_group_name) | ARN of the CloudWatch Log Group that will receive the DNS Query logs |
+| <a name="output_query_log_group_name"></a> [query_log_group_name](#output_query_log_group_name) | Name of the CloudWatch Log Group that will receive the DNS Query logs |
 | <a name="output_record_control_policy_arn"></a> [record_control_policy_arn](#output_record_control_policy_arn) | IAM Policy that allows modification of the DNS Record (and Hosted Zone information) |
 | <a name="output_record_id"></a> [record_id](#output_record_id) | ID of the DNS Record |
 | <a name="output_record_name"></a> [record_name](#output_record_name) | DNS Name of the Route53 Record |
