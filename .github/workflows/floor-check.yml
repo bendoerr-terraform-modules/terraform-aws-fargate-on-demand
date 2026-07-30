@@ -53,7 +53,8 @@ jobs:
           # Keep the matrix honest against versions.tf: a matrix value that drifts above (or
           # below) the declared floor would silently test the wrong version, breaking the
           # "exact declared floor" promise. Fail loudly instead.
-          declared=$(grep -oE 'required_version *= *">= [0-9]+\.[0-9]+\.[0-9]+"' versions.tf | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          # `|| true`: without it a no-match grep aborts under pipefail before the friendly error.
+          declared=$(grep -oE 'required_version *= *">= [0-9]+\.[0-9]+\.[0-9]+"' versions.tf | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
           if [ "$declared" != "${{ matrix.tf }}" ]; then
             echo "::error::floor-check matrix pins ${{ matrix.tf }} but ${{ matrix.module }}/versions.tf declares >= ${declared:-<none>} — update the matrix to match the declared floor"
             exit 1
