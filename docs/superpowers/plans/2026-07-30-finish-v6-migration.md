@@ -31,8 +31,7 @@
 
 - `modules/*/versions.tf` (8) + `modules/*/examples/**/versions.tf` + `modules/*/examples/**/ctx.tf` — `required_version` floors. (Task 1)
 - `.github/workflows/floor-check.yml` — NEW. Matrix `init -backend=false && validate` pinned to each module's exact floor + a `convention` self-policing grep job. (Task 2)
-- `.terraform-docs.yml` — NEW (repo root). Pins terraform-docs format so regens are reproducible. (Task 3)
-- `modules/launcher/README.md`, `modules/dns-record/README.md`, `modules/efs-access/README.md` — regenerate marker-wrapped terraform-docs sections against the pinned config. (Task 3)
+- `modules/launcher/README.md`, `modules/dns-record/README.md`, `modules/efs-access/README.md` — regenerate marker-wrapped terraform-docs sections via the org canon chain (NO committed config — the chain runs flags). (Task 3)
 - `README.md` (root) — Usage code block (real example) + replace six empty terraform-docs data-section TODOs with a real `## Modules` index. About + Version Constraints ALREADY real prose, untouched. (Task 4)
 - **Root README and submodule READMEs are owned by different tasks (4 vs 3) with NO file overlap** — root has no terraform-docs markers/`.tf`.
 
