@@ -40,11 +40,13 @@ runnable example under their own `examples/complete/` (the `launcher`,
 `persistence`, `dns-record`, `notice-discord`, and `notice-github` examples are
 exercised by terratest in CI). The `launcher` is the heart of the pattern — a
 Lambda that watches an ECS service's traffic and scales it to zero when idle, then
-back up on demand:
+back up on demand. The block below is **illustrative** (not runnable as-is): replace
+`vX.Y.Z` with a released tag, and the surrounding wiring — VPC, ECS service, DNS
+trigger — lives in the example dir linked underneath.
 
 ```hcl
 module "launcher" {
-  source = "git@github.com:bendoerr-terraform-modules/terraform-aws-fargate-on-demand//modules/launcher?ref=vX.Y.Z" # pin to a released tag
+  source = "git@github.com:bendoerr-terraform-modules/terraform-aws-fargate-on-demand//modules/launcher?ref=vX.Y.Z" # replace with a released tag
 
   context                  = module.context.shared
   ecs_cluster              = module.ecs.cluster_name
