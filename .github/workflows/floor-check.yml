@@ -42,6 +42,19 @@ jobs:
             releases.hashicorp.com:443
       - name: "Checkout"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: "Assert matrix floor == module's declared required_version"
+        working-directory: ${{ matrix.module }}
+        run: |
+          set -euo pipefail
+          # Keep the matrix honest against versions.tf: a matrix value that drifts above (or
+          # below) the declared floor would silently test the wrong version, breaking the
+          # "exact declared floor" promise. Fail loudly instead.
+          declared=$(grep -oE 'required_version *= *">= [0-9]+\.[0-9]+\.[0-9]+"' versions.tf | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ "$declared" != "${{ matrix.tf }}" ]; then
+            echo "::error::floor-check matrix pins ${{ matrix.tf }} but ${{ matrix.module }}/versions.tf declares >= ${declared:-<none>} — update the matrix to match the declared floor"
+            exit 1
+          fi
+          echo "matrix floor ${{ matrix.tf }} matches declared >= $declared"
       - name: "Setup Terraform (pinned to declared floor)"
         uses: step-security/setup-terraform@11f45fe036ccfd27d231861d38b183d405b059a9 # v4.0.0
         with:

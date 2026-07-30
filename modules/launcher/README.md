@@ -1,3 +1,10 @@
+# launcher
+
+Lambda + CloudWatch subscription filter that scales an ECS service up on inbound traffic and
+idles it back to zero — the entry point for the on-demand Fargate pattern.
+
+## Reference
+
 <!-- BEGIN_TF_DOCS -->
 
 ### Requirements

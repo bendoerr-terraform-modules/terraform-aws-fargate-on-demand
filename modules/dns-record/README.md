@@ -1,3 +1,9 @@
+# dns-record
+
+Route53 record plus DNS query logging — the query-log stream is what wakes the launcher.
+
+## Reference
+
 <!-- BEGIN_TF_DOCS -->
 
 ### Requirements

@@ -35,10 +35,12 @@ this module is for you! No seriously around $1.50 for 20 hours of uptime.
 
 ## Usage
 
-Each submodule under [`modules/`](modules/) is consumed on its own and ships a
-complete, terratest-exercised configuration under its own `examples/complete/`.
-The `launcher` is the heart of the pattern — a Lambda that watches an ECS
-service's traffic and scales it to zero when idle, then back up on demand:
+Each submodule under [`modules/`](modules/) is consumed on its own; several ship a
+runnable example under their own `examples/complete/` (the `launcher`,
+`persistence`, `dns-record`, `notice-discord`, and `notice-github` examples are
+exercised by terratest in CI). The `launcher` is the heart of the pattern — a
+Lambda that watches an ECS service's traffic and scales it to zero when idle, then
+back up on demand:
 
 ```hcl
 module "launcher" {
@@ -86,8 +88,9 @@ constraints.
 
 ## Modules
 
-This is a monorepo; there are no resources at the root. Each submodule declares
-its own requirements, providers, inputs, and outputs in its own `README.md`.
+This is a monorepo; there are no resources at the root. Each submodule lives under
+`modules/<name>/` with its own `versions.tf`; where a submodule carries a generated
+README, it documents that module's full requirements, inputs, and outputs.
 
 | Module | What it does |
 |--------|--------------|
