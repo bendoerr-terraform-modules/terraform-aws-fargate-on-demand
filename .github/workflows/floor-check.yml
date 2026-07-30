@@ -17,14 +17,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { module: modules/dns-record,             tf: "1.3.0" }
-          - { module: modules/efs-access,             tf: "1.3.0" }
-          - { module: modules/launcher,               tf: "1.3.0" }
-          - { module: modules/notice-discord,         tf: "1.3.0" }
-          - { module: modules/notice-github,          tf: "1.3.0" }
+          - { module: modules/dns-record, tf: "1.3.0" }
+          - { module: modules/efs-access, tf: "1.3.0" }
+          - { module: modules/launcher, tf: "1.3.0" }
+          - { module: modules/notice-discord, tf: "1.3.0" }
+          - { module: modules/notice-github, tf: "1.3.0" }
           - { module: modules/notice-parameter-store, tf: "1.3.0" }
-          - { module: modules/persistence,            tf: "1.3.0" }
-          - { module: modules/service,                tf: "1.9.0" }
+          - { module: modules/persistence, tf: "1.3.0" }
+          - { module: modules/service, tf: "1.9.0" }
     steps:
       - name: "Harden Runner"
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
