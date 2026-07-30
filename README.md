@@ -35,10 +35,25 @@ this module is for you! No seriously around $1.50 for 20 hours of uptime.
 
 ## Usage
 
-```
-TODO
+Each submodule under [`modules/`](modules/) is consumed on its own and ships a
+complete, terratest-exercised configuration under its own `examples/complete/`.
+The `launcher` is the heart of the pattern — a Lambda that watches an ECS
+service's traffic and scales it to zero when idle, then back up on demand:
+
+```hcl
+module "launcher" {
+  source = "git@github.com:bendoerr-terraform-modules/terraform-aws-fargate-on-demand//modules/launcher?ref=vX.Y.Z" # pin to a released tag
+
+  context                  = module.context.shared
+  ecs_cluster              = module.ecs.cluster_name
+  ecs_service              = module.ecs.services[module.label_svc.id].name
+  trigger_cloudwatch_group = module.log_group.cloudwatch_log_group_name
 }
 ```
+
+See [`modules/launcher/examples/complete`](modules/launcher/examples/complete) for
+the full wiring — VPC, ECS service, DNS query-log trigger, and notices — and each
+submodule's own `examples/complete` for a runnable configuration.
 
 ## Version Constraints
 
@@ -69,29 +84,21 @@ automatic major version bumps. Consume the individual submodules under
 provider version compatible with both your configuration and the submodule's
 constraints.
 
-## Requirements
-
-TODO
-
-## Providers
-
-TODO
-
 ## Modules
 
-TODO
+This is a monorepo; there are no resources at the root. Each submodule declares
+its own requirements, providers, inputs, and outputs in its own `README.md`.
 
-## Resources
-
-TODO
-
-## Inputs
-
-TODO
-
-## Outputs
-
-TODO
+| Module | What it does |
+|--------|--------------|
+| [launcher](modules/launcher) | Lambda + CloudWatch subscription filter that scales an ECS service up on inbound traffic and idles it back to zero. The entry point. |
+| [service](modules/service) | The ECS cluster, task definition, service, security groups, and SNS status topic for the on-demand workload. |
+| [persistence](modules/persistence) | EFS file system, access point, and mount targets for state that survives start/stop. |
+| [efs-access](modules/efs-access) | A transient, SSM-managed EC2 helper for moving files to/from the EFS volume (rsync / sshfs / SFTP over SSM, or `aws s3 sync`). |
+| [dns-record](modules/dns-record) | Route53 record plus DNS query logging — the query-log stream is what wakes the launcher. |
+| [notice-discord](modules/notice-discord) | SNS-subscribed Lambda that posts start/stop status notices to Discord. |
+| [notice-github](modules/notice-github) | SNS-subscribed Lambda that publishes status to a GitHub status page. |
+| [notice-parameter-store](modules/notice-parameter-store) | SNS-subscribed Lambda that writes status to an SSM Parameter Store parameter. |
 
 ## Roadmap
 
