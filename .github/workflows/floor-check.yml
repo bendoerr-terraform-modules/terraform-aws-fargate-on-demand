@@ -72,7 +72,7 @@ jobs:
           # normalizes to) to anonymous HTTPS, keeping the org SSH key OUT of PR-controlled
           # `terraform init`.
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
       - name: "Init + validate at exact floor"
         working-directory: ${{ matrix.module }}
         run: |
