@@ -1,0 +1,24 @@
+# Thin caller -> reusable scorecard in bendoerr-terraform-modules/workflows.
+# scorecard is the moving-@v1 lane (SARIF tool 'Scorecard' != 'CodeQL', never a required gate).
+# The FULL trigger set MUST live here (a workflow_call reusable can't carry triggers): dropping the
+# weekly `schedule` would silently stop the Maintained/Branch-Protection scans. The job grants
+# security-events: write + id-token: write (caller-capped) so the reusable can upload SARIF + publish.
+name: Scorecard supply-chain security
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "16 12 * * 0"
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    uses: bendoerr-terraform-modules/workflows/.github/workflows/scorecard.yml@93e740f8fea20eda37207f4afd2908325972851e # v1.2.7
