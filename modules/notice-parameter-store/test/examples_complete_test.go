@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -11,9 +15,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/kr/pretty"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func TestDefaults(t *testing.T) {
@@ -24,7 +25,7 @@ func TestDefaults(t *testing.T) {
 
 	tempTestFolder := test_structure.CopyTerraformFolderToTemp(t, rootFolder, terraformFolderRelativeToRoot)
 
-	rndns := random.UniqueId()
+	rndns := random.UniqueID()
 
 	terraformOptions := &terraform.Options{
 		// The path to where our Terraform code is located
@@ -63,8 +64,8 @@ func TestDefaults(t *testing.T) {
 	snsSvc := sns.NewFromConfig(cfg)
 
 	// Create an event message
-	testClusterName := random.UniqueId()
-	testServiceName := random.UniqueId()
+	testClusterName := random.UniqueID()
+	testServiceName := random.UniqueID()
 	testEventName := random.RandomString([]string{"start", "active", "inactive", "stop", "foobar"})
 
 	testEvent := map[string]string{

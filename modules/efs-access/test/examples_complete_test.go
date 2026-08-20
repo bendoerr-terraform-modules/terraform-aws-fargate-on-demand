@@ -20,7 +20,7 @@ func TestDefaultsDisabled(t *testing.T) {
 		t, rootFolder, terraformFolderRelativeToRoot,
 	)
 
-	rndns := random.UniqueId()
+	rndns := random.UniqueID()
 
 	terraformOptions := &terraform.Options{
 		TerraformDir: tempTestFolder,
