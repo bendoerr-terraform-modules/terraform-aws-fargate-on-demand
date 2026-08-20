@@ -99,7 +99,7 @@ data "aws_iam_policy_document" "mc_task_cw" {
 }
 
 module "label_logs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
   name    = "logs"
 }
