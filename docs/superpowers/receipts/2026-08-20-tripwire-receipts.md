@@ -199,3 +199,16 @@ rc=1
 NOT MEASURED - .github/coverage-exemptions.txt missing - deleting the allowlist is not a way to pass
 rc=2
 ```
+
+## 10. PR A end-state green — all five arms OK with exactly one dated exemption
+
+```
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: PASS
+rc=0
+```
