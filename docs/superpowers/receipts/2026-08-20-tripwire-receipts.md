@@ -212,3 +212,218 @@ population: 8 modules, 7 test dirs, 1 exemptions
 COVERAGE TRUTH: PASS
 rc=0
 ```
+
+______________________________________________________________________
+
+# Receipts v2 — post-review-1 rewrite (script at `588cab7`)
+
+> The review-1 hardening rewrote the tripwire (directories-plural support, shape
+> refusals, if/paths execution guards, module\[:arm\] exemptions, arm-roster assert,
+> own CI job). A rewrite invalidates old receipts: every implemented branch is
+> re-proven below against the NEW script — 11 sub-directions + 5 refusal arms +
+> 1 acceptance control. Same discipline: plant, run, capture with unpiped rc,
+> revert, verify clean.
+
+## v2: test-dir: ghost module with no test dir
+
+```text
+ARM test-dir: RED
+ARM matrix: OK
+ARM dependabot: RED
+ARM golangci: OK
+ARM exemptions: OK
+population: 9 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: matrix: entry missing for existing test dir
+
+```text
+ARM test-dir: OK
+ARM matrix: RED
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: matrix: ghost entry not on disk
+
+```text
+ARM test-dir: OK
+ARM matrix: RED
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: dependabot: terraform entry missing
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: RED
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: dependabot: terraform ghost dir
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: RED
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: dependabot: gomod entry missing
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: RED
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: dependabot: gomod ghost dir
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: RED
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: golangci: workdir missing for existing test dir
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: RED
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: golangci: ghost workdir not on disk
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: RED
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: exemptions: entry names nonexistent module
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: RED
+population: 8 modules, 7 test dirs, 2 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: exemptions: stale (module grew a test dir)
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: RED
+population: 8 modules, 7 test dirs, 2 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v2: REFUSAL: allowlist file absent (rc=2)
+
+```text
+NOT MEASURED - .github/coverage-exemptions.txt missing - deleting the allowlist is not a way to pass
+rc=2
+```
+
+## v2: REFUSAL: jobs.terratest if-gate (membership != execution)
+
+```text
+NOT MEASURED - test.yml: jobs.terratest carries an `if:` gate - roster membership no longer implies execution
+rc=2
+```
+
+## v2: REFUSAL: on.pull_request paths filter
+
+```text
+NOT MEASURED - test.yml: on.pull_request is paths-filtered - roster membership no longer implies execution
+rc=2
+```
+
+## v2: REFUSAL: scalar matrix shape
+
+```text
+NOT MEASURED - test.yml matrix.project is not a non-empty list of strings - malformed shape is not a pass
+rc=2
+```
+
+## v2: REFUSAL: unknown exemption arm
+
+```text
+NOT MEASURED - coverage-exemptions.txt: unknown arm 'bogus-arm' in entry 'service:bogus-arm'
+rc=2
+```
+
+## v2: ACCEPTANCE: dependabot directories:-plural form must NOT false-red
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: PASS
+rc=0
+```
+
+## v2: final green: 8 modules / 7 test dirs / 1 exemption
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: PASS
+rc=0
+```
