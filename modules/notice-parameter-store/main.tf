@@ -17,7 +17,7 @@ resource "aws_ssm_parameter" "state" {
 }
 
 module "label_notice" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
   name    = "ntc-ssm-ps"
 }
