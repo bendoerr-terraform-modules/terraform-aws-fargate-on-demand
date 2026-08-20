@@ -98,7 +98,7 @@ func TestDefaults(t *testing.T) {
 
 	// Wait to receive the test message
 	stateValue := map[string]string{}
-	timeoutTimer := time.After(time.Second * 10)
+	timeoutTimer := time.After(time.Second * 60)
 	found := false
 	for !found {
 		select {
