@@ -1,5 +1,5 @@
 module "label" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
   name    = "efs-acc"
 }
@@ -66,7 +66,7 @@ resource "aws_iam_instance_profile" "this" {
 # Optional scratch bucket for the `aws s3 sync` transfer lane.
 # ---------------------------------------------------------------------------
 module "label_transfer" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
   name    = "efs-acc-xfer"
 }
@@ -161,7 +161,7 @@ data "aws_subnet" "this" {
 }
 
 module "label_egress" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
   name    = "efs-acc-egr"
 }
