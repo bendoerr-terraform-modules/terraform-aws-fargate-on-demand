@@ -41,7 +41,13 @@ Go 1.26.0 + terratest v1.0.1, aws-sdk-go-v2, Python 3 + PyYAML (tripwire), GitHu
   step goes in the `paperwork` job (egress-blocked to `api.github.com:443`,`github.com:443`;
   the tripwire must therefore be purely local — no installs, no network).
 - Wall-clock honesty: matrix grows 5 → 8 serialized projects (~12 min each observed);
-  expect +25–35 min per Test run. Accepted in spec.
+  PR A takes it to 7 (~84 min), PR B to 8 (~96 min). That crosses the spec's "~60 min →
+  discuss splitting" line — both PR bodies MUST state the measured total so the discussion
+  is triggered, not discovered.
+- Local module fetch: the examples' `git@github.com:` sources work locally via go-getter's
+  ssh:// normalization + this box's global `insteadOf` rewrite (measured with
+  `terraform get`). Do NOT probe with raw scp-form `git ls-remote` — port 22 is blocked
+  and it hangs; that is not a defect.
 
 ---
 
@@ -64,6 +70,14 @@ Go 1.26.0 + terratest v1.0.1, aws-sdk-go-v2, Python 3 + PyYAML (tripwire), GitHu
   `#` comments allowed; an exemption suppresses ONLY the absent-test-dir consequences
   (test-dir arm), never the terraform-ecosystem dependabot requirement; a stale exemption
   (module deleted, or module that has since grown `test/`) is itself RED.
+
+- [ ] **Step 0: Create the branch**
+
+```bash
+git checkout main && git pull && git checkout -b patrol/coverage-truth
+```
+
+(If the branch already exists with the spec/plan commits, `git checkout patrol/coverage-truth && git pull` instead.)
 
 - [ ] **Step 1: Write the tripwire script**
 
@@ -236,7 +250,9 @@ sys.exit(0)
 
 - [ ] **Step 3: Run on the pre-fix tree — capture the natural RED receipt**
 
-Run from repo root: `python3 .github/scripts/coverage-truth.py > /tmp/receipt-natural.txt; echo rc=$?`
+Run from repo root:
+`python3 .github/scripts/coverage-truth.py > /tmp/receipt-natural.txt 2>&1; echo rc=$? >> /tmp/receipt-natural.txt`
+(rc goes INTO the receipt file, measured without a pipe — same convention as Step 4.)
 Expected: `rc=1`. Arms `test-dir` (efs-access, service), `matrix`
 (notice-parameter-store missing), `dependabot` (4 terraform dirs + 2 gomod dirs missing)
 must be RED; `golangci` and `exemptions` OK. If any expected-RED arm prints OK, STOP —
@@ -248,9 +264,11 @@ The natural tree exercises test-dir/matrix/dependabot. The other two get planted
 violations, one at a time, each reverted before the next (verify `git status` clean
 between plants):
 
-1. `golangci` arm: temporarily delete `"modules/persistence/test"` from
-   `golangci_workdirs` in `.github/workflows/lint.yml`; run; expect
-   `ARM golangci: RED` + rc=1 naming that entry. Revert with `git checkout -- .github/workflows/lint.yml`.
+1. `golangci` arm: in `.github/workflows/lint.yml`, change the `golangci_workdirs` value by
+   removing the substring `"modules/persistence/test",` (entry AND its trailing comma, keeping
+   valid JSON — malformed JSON gives rc=2 NOT MEASURED, which is the WRONG receipt); run; expect
+   `ARM golangci: RED` + rc=1 naming `modules/persistence/test`. Revert with
+   `git checkout -- .github/workflows/lint.yml`.
 2. `exemptions` arm (nonexistent module): temporarily add line `ghost-module` to
    `.github/coverage-exemptions.txt`; run; expect `ARM exemptions: RED`
    "names a module that does not exist". Revert.
@@ -274,7 +292,10 @@ In `.github/workflows/lint.yml`, `paperwork` job, append after the
         run: python3 .github/scripts/coverage-truth.py
 ```
 
-(Local-only reads; no new harden-runner endpoints needed.)
+(Local-only reads; no new harden-runner endpoints needed. PyYAML on `ubuntu-latest` is an
+assumption whose measurement is PR A's first CI run: if the step reds with
+`NOT MEASURED - PyYAML unavailable`, add `pypi.org:443` + `files.pythonhosted.org:443` to the
+paperwork allowlist and a `pip install pyyaml` step — do NOT weaken the rc=2 contract.)
 
 - [ ] **Step 6: Commit**
 
@@ -332,8 +353,8 @@ git commit -m "👷 ci: run notice-parameter-store terratest; allow ssm egress"
   `/modules/notice-parameter-store`, `/modules/service`; gomod entries for
   `/modules/notice-github/test`, `/modules/notice-parameter-store/test`,
   `/modules/efs-access/test`. (`/modules/service/test` arrives in PR B with the dir.)
-- Note: the efs-access/test gomod entry lands in the SAME PR as the dir (Task 5) — safe,
-  dependabot reads the merged tree.
+- Note: the efs-access/test gomod entry lands in the SAME PR as the dir (Task 4) — safe,
+  dependabot reads config only from the default branch post-merge.
 
 - [ ] **Step 1: Add four terraform entries**
 
@@ -392,9 +413,10 @@ git commit -m "⬆️ ci: dependabot covers every submodule and every test dir"
 **Files:**
 - Create: `modules/efs-access/test/examples_complete_test.go`
 - Create: `modules/efs-access/test/go.mod` (+ generated `go.sum`)
-- Create: `modules/efs-access/test/.golangci.yml` (copy from
-  `modules/persistence/test/.golangci.yml`, change `local-prefixes` tail to
-  `.../modules/efs-access/test`)
+- Create: `modules/efs-access/test/.golangci.yml` — copy
+  `modules/persistence/test/.golangci.yml` **verbatim, no edits**: `local-prefixes` is the
+  repo umbrella path by design (lint.yml's header documents it; all six existing copies are
+  identical) and prefix-matching already covers this module.
 - Modify: `.github/workflows/test.yml` (matrix += `modules/efs-access/test`)
 - Modify: `.github/workflows/lint.yml` (`golangci_workdirs` += `"modules/efs-access/test"`)
 
@@ -404,7 +426,8 @@ git commit -m "⬆️ ci: dependabot covers every submodule and every test dir"
   `connect_command`, `mount_path`, `transfer_bucket`; wires `../../../persistence`).
 - Produces: `TestDefaultsDisabled` passing in CI.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the test** (no red phase exists for an infra apply-test; the first
+honest execution is Step 4 against the sandbox)
 
 ⚠️ **The example references `../../../persistence` — copying only the module dir to temp
 dangles that path. Copy the REPO ROOT** (`rootFolder = "../../../"`).
@@ -489,7 +512,7 @@ Task 2). lint.yml `golangci_workdirs` value becomes:
 '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test"]'
 ```
 
-- [ ] **Step 4: Run the test locally against the sandbox (this is the red→green cycle)**
+- [ ] **Step 4: First execution against the sandbox**
 
 ```bash
 cd modules/efs-access/test
@@ -539,10 +562,10 @@ back to 0.47.
 
 - [ ] **Step 2: Widen the propagation window**
 
-In `examples_complete_test.go`, the poll loop bounds SNS→Lambda→SSM propagation with
-`time.After(10 * time.Second)`. A cold Lambda start alone can eat that. Change **only the
-bound**: `10 * time.Second` → `60 * time.Second` (keep the 1s sleep per iteration). The
-assertion itself (exact JSON round-trip) is untouched.
+In `examples_complete_test.go:101`, the poll loop bounds SNS→Lambda→SSM propagation with
+`timeoutTimer := time.After(time.Second * 10)`. A cold Lambda start alone can eat that.
+Change **only the bound**: `time.After(time.Second * 10)` → `time.After(time.Second * 60)`
+(keep the 1s sleep per iteration). The assertion itself (exact JSON round-trip) is untouched.
 
 - [ ] **Step 3: Run locally against the sandbox**
 
@@ -604,6 +627,7 @@ and the PR B forward-reference. Then the patrol arc's review gates take over (CI
 ### Task 7: service example (parked at zero)
 
 **Files:**
+- Precondition gate (Step 0): PR A verified MERGED before any work.
 - Create: `modules/service/examples/complete/ctx.tf`
 - Create: `modules/service/examples/complete/versions.tf`
 - Create: `modules/service/examples/complete/vpc.tf`
@@ -626,6 +650,19 @@ defaults — pass `false`, `null`, `null`. `task_cpu`/`task_memory` are STRINGS
 (`"256"`/`"512"`), unlike the upstream registry module launcher's example uses.
 `desired_count = 0` is hardcoded in the module with `ignore_changes` — zero Fargate
 compute by construction. The watchdog sidecar image is never pulled at desired 0.
+
+- [ ] **Step 0: Verify PR A merged, create the branch**
+
+```bash
+gh pr view patrol/coverage-truth -R bendoerr-terraform-modules/terraform-aws-fargate-on-demand --json state,mergeCommit
+```
+
+Expected: `"state": "MERGED"` with a non-empty mergeCommit. If not MERGED, STOP — PR B
+built on a pre-tripwire tree makes Task 9's receipts lie. Then:
+
+```bash
+git checkout main && git pull && git checkout -b patrol/service-coverage
+```
 
 - [ ] **Step 1: ctx.tf** (house pattern)
 
@@ -785,14 +822,18 @@ same-12-hours no-charge window; the test's defer-destroy removes it in minutes.)
 **Files:**
 - Create: `modules/service/test/examples_complete_test.go`
 - Create: `modules/service/test/go.mod` (+ tidy → go.sum)
-- Create: `modules/service/test/.golangci.yml` (copy, fix `local-prefixes` tail)
+- Create: `modules/service/test/.golangci.yml` — copy
+  `modules/persistence/test/.golangci.yml` **verbatim, no edits** (`local-prefixes` is the
+  repo umbrella path by design; all existing copies are identical).
 
 **Interfaces:**
 - Consumes: Task 7's outputs by exact name.
 - Produces: `TestServiceParkedAtZero` — Kitten's Q3 contract: cluster+service exist,
-  desired=0, taskdef ACTIVE, IAM role assumable by ecs-tasks, SNS topic wired.
+  desired=0, taskdef ACTIVE, IAM role assumable by ecs-tasks, SNS topic wired, launcher
+  control policy real.
 
-- [ ] **Step 1: go.mod seed** (then `go mod tidy`)
+- [ ] **Step 1: go.mod seed** (then `go mod tidy` — it adds the ecs/iam/sns service
+  clients as direct requires at whatever versions co-resolve; do NOT hand-pin them)
 
 ```
 module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/modules/service/test
@@ -800,11 +841,7 @@ module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/mod
 go 1.26.0
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.43.3
 	github.com/aws/aws-sdk-go-v2/config v1.32.34
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.78.1
-	github.com/aws/aws-sdk-go-v2/service/iam v1.53.8
-	github.com/aws/aws-sdk-go-v2/service/sns v1.39.16
 	github.com/gruntwork-io/terratest v1.0.1
 )
 ```
@@ -860,6 +897,7 @@ func TestServiceParkedAtZero(t *testing.T) {
 	serviceName := terraform.Output(t, terraformOptions, "ecs_service_name")
 	topicArn := terraform.Output(t, terraformOptions, "events_topic_arn")
 	roleName := terraform.Output(t, terraformOptions, "service_role_name")
+	controlPolicyArn := terraform.Output(t, terraformOptions, "svc_control_policy_arn")
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if err != nil {
@@ -911,6 +949,14 @@ func TestServiceParkedAtZero(t *testing.T) {
 		t.Errorf("assume-role policy does not trust ecs-tasks.amazonaws.com: %s", doc)
 	}
 
+	// The launcher-control policy the module exports is a real, reachable policy.
+	_, err = iamClient.GetPolicy(context.TODO(), &iam.GetPolicyInput{
+		PolicyArn: aws.String(controlPolicyArn),
+	})
+	if err != nil {
+		t.Errorf("svc control policy not reachable: %v", err)
+	}
+
 	// The events topic is real and reachable.
 	snsClient := sns.NewFromConfig(cfg)
 	_, err = snsClient.GetTopicAttributes(context.TODO(), &sns.GetTopicAttributesInput{
@@ -951,7 +997,44 @@ git commit -m "✅ (service): terratest — cluster/service/taskdef/IAM/SNS asse
 - Modify: `.github/dependabot.yml` (gomod += `/modules/service/test`, same shape as Task 3 Step 2)
 - Modify: `.github/coverage-exemptions.txt` (delete the `service` line — comments stay)
 
-- [ ] **Step 1: All four edits** (shapes exactly as in Tasks 2/3/4).
+- [ ] **Step 1: All four edits, verbatim**
+
+1. `.github/workflows/test.yml` — append to the `matrix.project` list (10-space indent,
+   no quotes):
+
+```yaml
+          - modules/service/test
+```
+
+2. `.github/workflows/lint.yml` — `golangci_workdirs` becomes (single-line JSON string,
+   single-quoted):
+
+```
+'["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test","modules/service/test"]'
+```
+
+3. `.github/dependabot.yml` — append this gomod entry:
+
+```yaml
+  - package-ecosystem: "gomod"
+    directory: "/modules/service/test"
+    schedule:
+      interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+    cooldown:
+      default-days: 14
+```
+
+4. `.github/coverage-exemptions.txt` — delete the line starting `service` (the header
+   comments stay; the file must continue to exist even entry-less — the tripwire refuses
+   rc=2 if it is missing).
 
 - [ ] **Step 2: Tripwire green with EMPTY allowlist — the patrol's closing receipt**
 

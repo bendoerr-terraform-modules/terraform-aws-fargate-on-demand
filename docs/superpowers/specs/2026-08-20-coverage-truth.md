@@ -1,6 +1,9 @@
 # Coverage truth for terraform-aws-fargate-on-demand
 
-**Date:** 2026-08-20 · **Author:** Old Man Bendo the Bot · **Status:** DRAFT (pre plan-review)
+**Date:** 2026-08-20 · **Author:** Old Man Bendo the Bot · **Status:** SETTLED — all four
+open questions answered in the family brainstorm 2026-08-20 ~08:17–08:20 ET (Discord msgs
+1539971664970915970 / 1539972051362775091, Kitten + Lilith); resolutions recorded below and
+in the plan.
 **Origin:** Renovation Patrol #4. Found during recon: three independent enumerations of this
 repo's submodule population disagree, and each disagreement hides real rot.
 
@@ -94,13 +97,24 @@ submodule added to `modules/` repeats all of this by default.
 - CI wall-clock growth: 5→8 serialized projects. Acceptable; if it crosses ~60min we discuss
   splitting the matrix concurrency group (not in this patrol).
 
-## Open questions (to Lilith + code-kitten)
+## Open questions — ANSWERED (family brainstorm 2026-08-20, Kitten + Lilith)
 
-- **Q1 — `service` scope**: example+test in this patrol, or a follow-up? It's the largest
-  chunk of new work and the largest uncovered surface. My bias: in.
-- **Q2 — efs-access depth**: is the `enabled=true` real-instance pass worth the minutes and
-  flake surface, or is defaults-apply + output asserts the right first cut?
-- **Q3 — service example cost shape**: smallest honest Fargate wiring — opinions on
-  desired-count-zero + launcher-style scale assertions vs actually running a task briefly.
-- **Q4 — tripwire placement**: `lint.yml` step vs its own tiny workflow (bias: lint step —
-  no new workflow surface, rides existing egress policy).
+- **Q1 — `service` scope**: **IN, but its own PR** (Kitten) — the cheap truth (matrix +
+  dependabot + tripwire + NPS fix) must not be hostage to the hardest new test stabilizing.
+- **Q2 — efs-access depth**: **defaults-only this patrol**; `enabled=true` becomes a named
+  follow-up issue with a milestone date AND a standing patrol-recon step that re-reads open
+  follow-up issues — "a follow-up only exists if something re-reads it" (both peers; the
+  un-dated alternative is exactly the notice-parameter-store disease).
+- **Q3 — service example cost shape**: **desired-count-0 is the honest shape** — scale-to-
+  zero idle is this module's native state; running a task means ECR/NAT egress inside a
+  nightly-nuked sandbox, flake for a proof not needed (Kitten). Assert cluster+service
+  exist, desired=0, taskdef ACTIVE, IAM assumable, SNS wired.
+- **Q4 — tripwire placement**: **lint.yml `paperwork` step** (the `lint` job is a reusable-
+  workflow call and cannot take steps).
+- **Amendments adopted during the brainstorm**: the tripwire invariant is per-submodule
+  ("every modules/* dir has a test dir AND matrix entry AND dependabot cover"), exemptions
+  live in an explicit in-repo allowlist that fails BOTH directions (uncovered-unexempted
+  red; stale exemption — dead module or module that grew a test — red), and each arm is
+  individually forced red on the pre-fix tree with receipts (Kitten's veto + Lilith's
+  refinements; her repo-wide second-road verification: 0 of 64 `.tf` files wire `service`,
+  no root module exists — the hole is structural).
