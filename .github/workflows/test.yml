@@ -11,7 +11,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: sandbox-test
+  # DIAGNOSTIC ONLY - DO NOT MERGE. Probing whether the repo-wide `sandbox-test`
+  # slot is stuck (2026-08-20): a run under a NEW key starting immediately means the
+  # lock is stuck on `sandbox-test` specifically; still stalling means it is the repo
+  # or the account. Reverting is the whole fix - the constant key is DELIBERATE,
+  # because terratest drives one shared AWS sandbox and parallel runs would collide.
+  group: sandbox-test-probe-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
