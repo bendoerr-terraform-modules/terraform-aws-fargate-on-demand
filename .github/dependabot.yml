@@ -8,6 +8,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -22,6 +23,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -36,6 +38,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -50,6 +53,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -64,6 +68,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -78,6 +83,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -92,6 +98,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
@@ -106,6 +113,7 @@ updates:
     groups:
       terraform:
         update-types:
+          - "major"
           - "minor"
           - "patch"
     commit-message:
