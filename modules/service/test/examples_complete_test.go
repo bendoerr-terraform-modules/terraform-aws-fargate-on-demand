@@ -3,8 +3,11 @@ package test_test
 import (
 	"context"
 	"net/url"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -16,8 +19,28 @@ import (
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
 
+// IAM reads are globally eventually consistent; a fresh client can NoSuchEntity
+// on a just-created role or policy. Retry the read a few times before treating
+// the error as real — a single flake here costs a full serialized-matrix rerun.
+func withRetry[T any](t *testing.T, what string, fn func() (T, error)) T {
+	t.Helper()
+	var out T
+	var err error
+	for attempt := 0; attempt < 5; attempt++ {
+		out, err = fn()
+		if err == nil {
+			return out
+		}
+		t.Logf("%s attempt %d: %v (retrying)", what, attempt+1, err)
+		time.Sleep(3 * time.Second)
+	}
+	t.Fatalf("%s failed after retries: %v", what, err)
+	return out
+}
+
 func TestServiceParkedAtZero(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
 	// The example sources ../../../dns-record and ../../../persistence, so the
 	// copied tree must be the repo root or those relative paths dangle.
@@ -39,23 +62,47 @@ func TestServiceParkedAtZero(t *testing.T) {
 		},
 	}
 
-	defer terraform.DestroyContext(t, context.Background(), terraformOptions)
-	terraform.InitAndApplyContext(t, context.Background(), terraformOptions)
+	defer terraform.DestroyContext(t, ctx, terraformOptions)
+	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
-	clusterName := terraform.OutputContext(t, context.Background(), terraformOptions, "ecs_cluster_name")
-	serviceName := terraform.OutputContext(t, context.Background(), terraformOptions, "ecs_service_name")
-	topicArn := terraform.OutputContext(t, context.Background(), terraformOptions, "events_topic_arn")
-	roleName := terraform.OutputContext(t, context.Background(), terraformOptions, "service_role_name")
-	controlPolicyArn := terraform.OutputContext(t, context.Background(), terraformOptions, "svc_control_policy_arn")
+	// Exact key-set assertion (the efs-access lesson from #555): every output is
+	// non-null here, so all five must be present — a typo'd or renamed output is
+	// a red, not a silently-absent key.
+	outputs := terraform.OutputAllContext(t, ctx, terraformOptions)
+	wantKeys := []string{
+		"ecs_cluster_name", "ecs_service_name", "events_topic_arn",
+		"service_role_name", "svc_control_policy_arn",
+	}
+	sort.Strings(wantKeys)
+	gotKeys := make([]string, 0, len(outputs))
+	for k := range outputs {
+		gotKeys = append(gotKeys, k)
+	}
+	sort.Strings(gotKeys)
+	if !reflect.DeepEqual(wantKeys, gotKeys) {
+		t.Fatalf("output key set should be %v, got %v", wantKeys, gotKeys)
+	}
+	str := func(k string) string {
+		v, _ := outputs[k].(string)
+		if v == "" {
+			t.Fatalf("output %q should be a non-empty string, got %#v", k, outputs[k])
+		}
+		return v
+	}
+	clusterName := str("ecs_cluster_name")
+	serviceName := str("ecs_service_name")
+	topicArn := str("events_topic_arn")
+	roleName := str("service_role_name")
+	controlPolicyArn := str("svc_control_policy_arn")
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-east-1"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Service exists on the module's cluster, ACTIVE, parked at zero.
 	ecsClient := ecs.NewFromConfig(cfg)
-	svcOut, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
+	svcOut, err := ecsClient.DescribeServices(ctx, &ecs.DescribeServicesInput{
 		Cluster:  aws.String(clusterName),
 		Services: []string{serviceName},
 	})
@@ -73,23 +120,41 @@ func TestServiceParkedAtZero(t *testing.T) {
 		t.Errorf("desired count should be 0 (scale-to-zero is the native state), got %d", svc.DesiredCount)
 	}
 
-	// The registered task definition is ACTIVE.
-	tdOut, err := ecsClient.DescribeTaskDefinition(context.TODO(), &ecs.DescribeTaskDefinitionInput{
+	// The registered task definition is ACTIVE and carries the example's shape:
+	// the declared cpu/memory strings and two containers (main alpine + watchdog).
+	tdOut, err := ecsClient.DescribeTaskDefinition(ctx, &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: svc.TaskDefinition,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(tdOut.TaskDefinition.Status) != "ACTIVE" {
-		t.Errorf("task definition status should be ACTIVE, got %q", tdOut.TaskDefinition.Status)
+	td := tdOut.TaskDefinition
+	if string(td.Status) != "ACTIVE" {
+		t.Errorf("task definition status should be ACTIVE, got %q", td.Status)
+	}
+	if aws.ToString(td.Cpu) != "256" || aws.ToString(td.Memory) != "512" {
+		t.Errorf("task definition cpu/memory should be 256/512, got %s/%s",
+			aws.ToString(td.Cpu), aws.ToString(td.Memory))
+	}
+	if len(td.ContainerDefinitions) != 2 {
+		t.Errorf("task definition should carry 2 containers (service + watchdog), got %d",
+			len(td.ContainerDefinitions))
+	}
+	sawAlpine := false
+	for _, c := range td.ContainerDefinitions {
+		if strings.Contains(aws.ToString(c.Image), "alpine") {
+			sawAlpine = true
+		}
+	}
+	if !sawAlpine {
+		t.Errorf("no container uses the example's alpine image")
 	}
 
 	// The task role trusts ecs-tasks.amazonaws.com.
 	iamClient := iam.NewFromConfig(cfg)
-	role, err := iamClient.GetRole(context.TODO(), &iam.GetRoleInput{RoleName: aws.String(roleName)})
-	if err != nil {
-		t.Fatal(err)
-	}
+	role := withRetry(t, "iam.GetRole", func() (*iam.GetRoleOutput, error) {
+		return iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(roleName)})
+	})
 	doc, err := url.QueryUnescape(aws.ToString(role.Role.AssumeRolePolicyDocument))
 	if err != nil {
 		t.Fatal(err)
@@ -98,20 +163,36 @@ func TestServiceParkedAtZero(t *testing.T) {
 		t.Errorf("assume-role policy does not trust ecs-tasks.amazonaws.com: %s", doc)
 	}
 
-	// The launcher-control policy the module exports is a real, reachable policy.
-	_, err = iamClient.GetPolicy(context.TODO(), &iam.GetPolicyInput{
-		PolicyArn: aws.String(controlPolicyArn),
+	// The launcher-control policy grants the action the launcher lives on —
+	// assert the DOCUMENT, not mere existence (existence is already implied by
+	// a successful apply; the content is what a regression would change).
+	pol := withRetry(t, "iam.GetPolicy", func() (*iam.GetPolicyOutput, error) {
+		return iamClient.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(controlPolicyArn)})
 	})
+	polVer := withRetry(t, "iam.GetPolicyVersion", func() (*iam.GetPolicyVersionOutput, error) {
+		return iamClient.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
+			PolicyArn: aws.String(controlPolicyArn),
+			VersionId: pol.Policy.DefaultVersionId,
+		})
+	})
+	polDoc, err := url.QueryUnescape(aws.ToString(polVer.PolicyVersion.Document))
 	if err != nil {
-		t.Errorf("svc control policy not reachable: %v", err)
+		t.Fatal(err)
+	}
+	if !strings.Contains(polDoc, "ecs:UpdateService") {
+		t.Errorf("control policy document does not grant ecs:UpdateService: %s", polDoc)
 	}
 
-	// The events topic is real and reachable.
+	// The events topic exists, and with sns_kms_key_id = null it must carry no
+	// KMS master key (an unexpected key means the null wiring regressed).
 	snsClient := sns.NewFromConfig(cfg)
-	_, err = snsClient.GetTopicAttributes(context.TODO(), &sns.GetTopicAttributesInput{
+	attrs, err := snsClient.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
 		TopicArn: aws.String(topicArn),
 	})
 	if err != nil {
-		t.Errorf("events topic not reachable: %v", err)
+		t.Fatal(err)
+	}
+	if kms := attrs.Attributes["KmsMasterKeyId"]; kms != "" {
+		t.Errorf("events topic should have no KMS key with sns_kms_key_id=null, got %q", kms)
 	}
 }
