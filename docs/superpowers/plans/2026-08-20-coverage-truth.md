@@ -258,11 +258,15 @@ Expected: `rc=1`. Arms `test-dir` (efs-access, service), `matrix`
 must be RED; `golangci` and `exemptions` OK. If any expected-RED arm prints OK, STOP —
 the script has the blindness Kitten vetoed; fix before proceeding.
 
-- [ ] **Step 4: Force each remaining arm red individually (sabotage receipts)**
+- [ ] **Step 4: Force every implemented sub-direction red individually (sabotage receipts)**
 
-The natural tree exercises test-dir/matrix/dependabot. The other two get planted
-violations, one at a time, each reverted before the next (verify `git status` clean
-between plants):
+The invariant is per SUB-DIRECTION, not per arm name (Lilith's count: the five arms
+implement 11 sub-directions; the natural receipt proves 4 — test-dir, matrix-missing,
+dependabot-tf-missing, dependabot-gomod-missing). Every OTHER implemented branch gets its
+own planted violation, one at a time, each reverted before the next (verify `git status`
+clean between plants). The four "configured but not on disk" plants matter most: a future
+module DELETION fires exactly those branches — a roster outliving the thing it names is
+this repo's original disease, one layer up:
 
 1. `golangci` arm: in `.github/workflows/lint.yml`, change the `golangci_workdirs` value by
    removing the substring `"modules/persistence/test",` (entry AND its trailing comma, keeping
@@ -274,8 +278,23 @@ between plants):
    "names a module that does not exist". Revert.
 3. `exemptions` arm (grew-a-test): temporarily add line `persistence`; run; expect
    `ARM exemptions: RED` "stale ... grown a test dir". Revert.
-4. NOT MEASURED contract: run with the exemptions file renamed away; expect
+4. `matrix` arm, ghost direction: temporarily append `          - modules/ghost/test` to
+   the `matrix.project` list in `.github/workflows/test.yml`; run; expect `ARM matrix: RED`
+   "is in the matrix but has no test dir on disk". Revert.
+5. `dependabot` arm, terraform-ghost: temporarily duplicate any terraform entry in
+   `.github/dependabot.yml` and change its directory to `"/modules/ghost"`; run; expect
+   `ARM dependabot: RED` "in dependabot(terraform) but not on disk". Revert.
+6. `dependabot` arm, gomod-ghost: same duplication with a gomod entry, directory
+   `"/modules/ghost/test"`; run; expect `ARM dependabot: RED` "in dependabot(gomod) but
+   not on disk". Revert.
+7. `golangci` arm, ghost direction: temporarily append `,"modules/ghost/test"` inside the
+   `golangci_workdirs` JSON (before the closing `]`, keeping valid JSON); run; expect
+   `ARM golangci: RED` "in golangci_workdirs but has no test dir on disk". Revert.
+8. NOT MEASURED contract: run with the exemptions file renamed away; expect
    `NOT MEASURED` + rc=2, NOT a pass. Restore.
+
+End state: 11 implemented sub-directions, 11 seen red (4 natural + 7 planted), plus the
+rc=2 refusal control. The receipts doc lists them in this order.
 
 Capture all outputs (with rc lines, measured WITHOUT a pipe:
 `python3 ... > f 2>&1; echo rc=$? >> f`) into
