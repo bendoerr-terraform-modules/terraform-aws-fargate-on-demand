@@ -10,8 +10,10 @@ Verdicts:
 
 Exemption file format: one entry per line, `module` or `module:arm` where arm is
 one of test-dir|matrix|dependabot|golangci; bare `module` means test-dir.
-An exemption suppresses only that arm's demands for that module; stale entries
-(dead module, or a test-dir exemption on a module that has grown a test) are RED.
+An exemption suppresses only that arm's demands for that module (note:
+`module:dependabot` suppresses BOTH the terraform and gomod demands for it, by
+design). Stale entries are RED: dead module, a test-dir exemption on a module
+that has grown a test, or any arm exemption whose demanded entry now exists.
 """
 import json
 import os
@@ -76,16 +78,18 @@ if terratest_job is None or not matrix:
     refuse("test.yml: jobs.terratest.strategy.matrix.project missing or empty")
 matrix = str_list_or_refuse(matrix, "test.yml matrix.project")
 
-# Membership is not execution: a job-level `if:` or a paths-filtered trigger
-# empties per-PR coverage while every roster stays intact. Refuse rather than
-# silently pass the one drift shape the sets cannot see.
+# Membership is not execution. These arms refuse the KNOWN cheap shapes that
+# empty per-PR coverage while every roster stays intact: a job-level `if:`, a
+# paths-filtered or ABSENT pull_request trigger, and golangci switched off.
+# NOT covered (recorded, not closed): branch-narrowing, step-level `if:` on the
+# run step, and workflow/job deletion - deletion resistance needs the check
+# names in the repo ruleset's required_status_checks, which is an org/Ben call.
 if "if" in terratest_job:
     refuse("test.yml: jobs.terratest carries an `if:` gate - roster membership no longer implies execution")
-try:
-    pr_trigger = test_wf.get(True) or test_wf.get("on") or {}
-    pr_block = pr_trigger.get("pull_request") or {}
-except AttributeError:
-    pr_block = {}
+triggers = test_wf.get(True) or test_wf.get("on") or {}
+if not (isinstance(triggers, dict) and "pull_request" in triggers):
+    refuse("test.yml: no on.pull_request trigger - per-PR coverage is zero with every roster intact")
+pr_block = triggers.get("pull_request") or {}
 if isinstance(pr_block, dict) and ("paths" in pr_block or "paths-ignore" in pr_block):
     refuse("test.yml: on.pull_request is paths-filtered - roster membership no longer implies execution")
 
@@ -119,9 +123,12 @@ if not tf_dirs or not go_dirs:
 
 lint_wf = load_yaml(".github/workflows/lint.yml")
 try:
-    workdirs = json.loads(lint_wf["jobs"]["lint"]["with"]["golangci_workdirs"])
+    lint_with = lint_wf["jobs"]["lint"]["with"]
+    workdirs = json.loads(lint_with["golangci_workdirs"])
 except (KeyError, TypeError, json.JSONDecodeError):
-    workdirs = None
+    lint_with, workdirs = {}, None
+if lint_with.get("golangci") is not True:
+    refuse("lint.yml: golangci is not enabled - a full roster with the runner off is not coverage")
 if not workdirs:
     refuse("lint.yml: jobs.lint.with.golangci_workdirs missing/unparsable/empty")
 workdirs = str_list_or_refuse(workdirs, "lint.yml golangci_workdirs")
@@ -159,8 +166,17 @@ stale = []
 for m, arms_set in sorted(exempt.items()):
     if m not in modules:
         stale.append(f"exemption '{m}' names a module that does not exist")
-    elif "test-dir" in arms_set and m in testdirs:
+        continue
+    if "test-dir" in arms_set and m in testdirs:
         stale.append(f"exemption '{m}' is stale: the module has since grown a test dir")
+    if "matrix" in arms_set and f"modules/{m}/test" in have_matrix:
+        stale.append(f"exemption '{m}:matrix' is stale: the matrix entry exists")
+    if "golangci" in arms_set and f"modules/{m}/test" in have_wd:
+        stale.append(f"exemption '{m}:golangci' is stale: the workdir entry exists")
+    if "dependabot" in arms_set and f"/modules/{m}" in tf_dirs and (
+        m not in testdirs or f"/modules/{m}/test" in go_dirs
+    ):
+        stale.append(f"exemption '{m}:dependabot' is stale: the dependabot entries exist")
 
 arms = {
     "test-dir": [
@@ -190,7 +206,8 @@ arms = {
     ),
     "exemptions": stale,
 }
-assert set(arms) == set(ARM_NAMES), "arm roster drifted from ARM_NAMES"
+if set(arms) != set(ARM_NAMES):
+    refuse("arm roster drifted from ARM_NAMES - instrument broken, not a verdict")
 
 # Verdict -------------------------------------------------------------------
 red = False

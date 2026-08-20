@@ -99,22 +99,30 @@ func TestDefaults(t *testing.T) {
 
 	// Wait to receive the test message
 	stateValue := map[string]string{}
+	var lastErr error
 	timeoutTimer := time.After(time.Second * 60)
 	found := false
 	for !found {
 		select {
 		case <-timeoutTimer:
-			t.Errorf("timeout: Failed to valid state, found: \n%s", makediff(testEvent, stateValue))
+			t.Errorf(
+				"timeout: Failed to valid state (last poll error: %v), found: \n%s",
+				lastErr, makediff(testEvent, stateValue),
+			)
 			return
 		default:
 			out, getErr := ssmSvc.GetParameter(context.TODO(), &ssm.GetParameterInput{Name: &paramName})
 			if getErr != nil {
 				// Transient SSM errors (throttling, 5xx) are what the 60s poll budget
-				// exists to absorb — only the timeout arm may fail the test.
-				t.Logf("GetParameter transient error (will retry): %v", getErr)
+				// exists to absorb — only the timeout arm may fail the test, and it
+				// reports the last error so a persistent failure (IAM, bad name) is
+				// the headline, not buried in retry logs.
+				lastErr = getErr
+				t.Logf("GetParameter error (will retry): %v", getErr)
 				time.Sleep(time.Second)
 				continue
 			}
+			lastErr = nil
 
 			v := out.Parameter.Value
 			t.Log("ssm parameter value: " + *v)
@@ -130,6 +138,7 @@ func TestDefaults(t *testing.T) {
 
 			if reflect.DeepEqual(testEvent, stateValue) {
 				found = true
+				continue
 			}
 
 			time.Sleep(time.Second)

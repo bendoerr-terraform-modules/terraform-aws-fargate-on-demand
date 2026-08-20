@@ -427,3 +427,78 @@ population: 8 modules, 7 test dirs, 1 exemptions
 COVERAGE TRUTH: PASS
 rc=0
 ```
+
+______________________________________________________________________
+
+# Receipts v3 — post-review-2 hardening (guards from the second review pass)
+
+> Review #2 empirically confirmed five open shapes; the fixes below each get their
+> forced red/refusal here. Recorded-not-closed (by design, needs Ben's ruleset):
+> workflow/job deletion resistance via required_status_checks; branch-narrowing and
+> step-level `if:` remain enumerated in the script's own comment.
+
+## v3: REFUSAL: golangci switched off with roster intact
+
+```text
+NOT MEASURED - lint.yml: golangci is not enabled - a full roster with the runner off is not coverage
+rc=2
+```
+
+## v3: REFUSAL: on.pull_request trigger deleted entirely
+
+```text
+NOT MEASURED - test.yml: no on.pull_request trigger - per-PR coverage is zero with every roster intact
+rc=2
+```
+
+## v3: exemptions: arm exemption stale (matrix entry exists)
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: RED
+population: 8 modules, 7 test dirs, 2 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v3: exemptions: arm exemption stale (workdir exists)
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: RED
+population: 8 modules, 7 test dirs, 2 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v3: exemptions: arm exemption stale (dependabot entries exist)
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: RED
+population: 8 modules, 7 test dirs, 2 exemptions
+COVERAGE TRUTH: RED
+rc=1
+```
+
+## v3: final green after v3 hardening
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 7 test dirs, 1 exemptions
+COVERAGE TRUTH: PASS
+rc=0
+```
