@@ -1,0 +1,5 @@
+# Coverage exemptions — one module name per line, '#' comments.
+# An entry suppresses ONLY the "module has no test dir" arm. It does NOT
+# suppress the terraform dependabot requirement. A stale entry (module gone,
+# or module that has since grown a test dir) turns the exemptions arm RED.
+# Every entry carries a date and a reason pointing at the work that retires it.

@@ -67,3 +67,6 @@ jobs:
             echo "::error::template self-references remain (badges/links/example role still point at the template) — see the new-repo checklist at the top of terraform-module-repo-template's README"; echo "$selfrefs"; fail=1
           fi
           exit $fail
+
+      - name: "Coverage truth"
+        run: python3 .github/scripts/coverage-truth.py
