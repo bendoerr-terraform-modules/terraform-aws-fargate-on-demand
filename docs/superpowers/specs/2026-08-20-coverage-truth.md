@@ -16,7 +16,7 @@ Three surfaces each carry their own hand-written copy of that population, and no
 (all measured 2026-08-20T08:15-04:00 on a fresh clone at `3b1759e`):
 
 | Surface | Covers | Missing |
-|---|---|---|
+| --- | --- | --- |
 | `test.yml` matrix | 5 of 8 | `efs-access`, `notice-parameter-store`, `service` |
 | `dependabot.yml` terraform | 4 of 8 | `efs-access`, `notice-github`, `notice-parameter-store`, `service` |
 | `dependabot.yml` gomod | 4 of 6 test dirs | `notice-github/test` (which CI **runs**), `notice-parameter-store/test` |
