@@ -48,7 +48,7 @@ func outputStrings(t *testing.T, outputs map[string]interface{}, wantKeys []stri
 
 // Service exists on the module's cluster, ACTIVE, parked at zero; returns the
 // registered task definition ARN for the shape assertions.
-func assertServiceParked(t *testing.T, ctx context.Context, ecsClient *ecs.Client, cluster, service string) *string {
+func assertServiceParked(ctx context.Context, t *testing.T, ecsClient *ecs.Client, cluster, service string) *string {
 	t.Helper()
 	svcOut, err := ecsClient.DescribeServices(ctx, &ecs.DescribeServicesInput{
 		Cluster:  aws.String(cluster),
@@ -72,7 +72,7 @@ func assertServiceParked(t *testing.T, ctx context.Context, ecsClient *ecs.Clien
 
 // The task definition is ACTIVE and carries the example's declared shape: the
 // cpu/memory strings and two containers (service alpine + watchdog).
-func assertTaskDefinitionShape(t *testing.T, ctx context.Context, ecsClient *ecs.Client, taskDefArn *string) {
+func assertTaskDefinitionShape(ctx context.Context, t *testing.T, ecsClient *ecs.Client, taskDefArn *string) {
 	t.Helper()
 	tdOut, err := ecsClient.DescribeTaskDefinition(ctx, &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: taskDefArn,
@@ -106,13 +106,13 @@ func assertTaskDefinitionShape(t *testing.T, ctx context.Context, ecsClient *ecs
 // The task role trusts ecs-tasks.amazonaws.com, and the launcher-control policy
 // grants the action the launcher lives on — assert the DOCUMENT, not mere
 // existence (existence is already implied by a successful apply).
-func assertIAMWiring(t *testing.T, ctx context.Context, iamClient *iam.Client, roleName, controlPolicyArn string) {
+func assertIAMWiring(ctx context.Context, t *testing.T, iamClient *iam.Client, roleName, controlPolicyArn string) {
 	t.Helper()
 	// IAM reads are globally eventually consistent; a fresh client can
 	// NoSuchEntity on a just-created role or policy. Same retry budget as the
 	// dns-record sibling (10 x 5s) — a flake here costs a serialized-matrix rerun.
 	var role *iam.GetRoleOutput
-	if _, err := retry.DoWithRetryE(t, "iam.GetRole", 10, 5*time.Second, func() (string, error) {
+	if _, err := retry.DoWithRetryContextE(t, ctx, "iam.GetRole", 10, 5*time.Second, func() (string, error) {
 		var e error
 		role, e = iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(roleName)})
 		return "", e
@@ -128,7 +128,7 @@ func assertIAMWiring(t *testing.T, ctx context.Context, iamClient *iam.Client, r
 	}
 
 	var polVer *iam.GetPolicyVersionOutput
-	if _, err := retry.DoWithRetryE(t, "iam.GetPolicy+Version", 10, 5*time.Second, func() (string, error) {
+	if _, rerr := retry.DoWithRetryContextE(t, ctx, "iam.GetPolicy+Version", 10, 5*time.Second, func() (string, error) {
 		pol, e := iamClient.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(controlPolicyArn)})
 		if e != nil {
 			return "", e
@@ -138,8 +138,8 @@ func assertIAMWiring(t *testing.T, ctx context.Context, iamClient *iam.Client, r
 			VersionId: pol.Policy.DefaultVersionId,
 		})
 		return "", e
-	}); err != nil {
-		t.Fatal(err)
+	}); rerr != nil {
+		t.Fatal(rerr)
 	}
 	polDoc, err := url.PathUnescape(aws.ToString(polVer.PolicyVersion.Document))
 	if err != nil {
@@ -152,7 +152,7 @@ func assertIAMWiring(t *testing.T, ctx context.Context, iamClient *iam.Client, r
 
 // The events topic exists, and with sns_kms_key_id = null it must carry no KMS
 // master key (an unexpected key means the null wiring regressed).
-func assertTopicUnencrypted(t *testing.T, ctx context.Context, snsClient *sns.Client, topicArn string) {
+func assertTopicUnencrypted(ctx context.Context, t *testing.T, snsClient *sns.Client, topicArn string) {
 	t.Helper()
 	attrs, err := snsClient.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
 		TopicArn: aws.String(topicArn),
@@ -203,8 +203,8 @@ func TestServiceParkedAtZero(t *testing.T) {
 	}
 	ecsClient := ecs.NewFromConfig(cfg)
 
-	taskDefArn := assertServiceParked(t, ctx, ecsClient, vals["ecs_cluster_name"], vals["ecs_service_name"])
-	assertTaskDefinitionShape(t, ctx, ecsClient, taskDefArn)
-	assertIAMWiring(t, ctx, iam.NewFromConfig(cfg), vals["service_role_name"], vals["svc_control_policy_arn"])
-	assertTopicUnencrypted(t, ctx, sns.NewFromConfig(cfg), vals["events_topic_arn"])
+	taskDefArn := assertServiceParked(ctx, t, ecsClient, vals["ecs_cluster_name"], vals["ecs_service_name"])
+	assertTaskDefinitionShape(ctx, t, ecsClient, taskDefArn)
+	assertIAMWiring(ctx, t, iam.NewFromConfig(cfg), vals["service_role_name"], vals["svc_control_policy_arn"])
+	assertTopicUnencrypted(ctx, t, sns.NewFromConfig(cfg), vals["events_topic_arn"])
 }
