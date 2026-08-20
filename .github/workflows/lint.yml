@@ -25,6 +25,34 @@ jobs:
       pull-requests: write
     uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@93e740f8fea20eda37207f4afd2908325972851e # v1.2.7
     with:
+      # Org default allowlist + storage.googleapis.com — the Go module proxy
+      # redirects zip downloads there, and any dependency version not already in
+      # the runner cache dies at egress without it (bit this repo on PR #555).
+      # Follow-up filed to add it to the org default in `workflows`; drop this
+      # override when that ships.
+      allowed-endpoints: >
+        api.github.com:443
+        check.trivy.dev:443
+        checkpoint-api.hashicorp.com:443
+        dl.google.com:443
+        files.pythonhosted.org:443
+        ghcr.io:443
+        github.com:22
+        github.com:443
+        go.dev:443
+        golang.org:443
+        mirror.gcr.io:443
+        objects.githubusercontent.com:443
+        pkg-containers.githubusercontent.com:443
+        proxy.golang.org:443
+        pypi.org:443
+        raw.githubusercontent.com:443
+        registry.npmjs.org:443
+        release-assets.githubusercontent.com:443
+        releases.hashicorp.com:443
+        storage.googleapis.com:443
+        sum.golang.org:443
+        tuf-repo-cdn.sigstore.dev:443
       golangci: true
       golangci_workdirs: '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test"]'
       terraform_docs: false
