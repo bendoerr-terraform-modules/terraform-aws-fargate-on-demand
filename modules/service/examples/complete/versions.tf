@@ -1,6 +1,5 @@
 terraform {
-  # floor-reason: modules/service requires >= 1.9.0 (cross-variable validation on task_cpu/task_memory)
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.9.0" # floor-reason: modules/service requires 1.9 (cross-variable validation on task_cpu/task_memory)
   required_providers {
     aws = {
       source  = "hashicorp/aws"
