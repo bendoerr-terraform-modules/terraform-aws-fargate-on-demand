@@ -215,7 +215,7 @@ rc=0
 
 ______________________________________________________________________
 
-# Receipts v2 — post-review-1 rewrite (script at `588cab7`)
+## Receipts v2 — post-review-1 rewrite (script at `588cab7`)
 
 > The review-1 hardening rewrote the tripwire (directories-plural support, shape
 > refusals, if/paths execution guards, module\[:arm\] exemptions, arm-roster assert,
@@ -430,7 +430,7 @@ rc=0
 
 ______________________________________________________________________
 
-# Receipts v3 — post-review-2 hardening (guards from the second review pass)
+## Receipts v3 — post-review-2 hardening (guards from the second review pass)
 
 > Review #2 empirically confirmed five open shapes; the fixes below each get their
 > forced red/refusal here. Recorded-not-closed (by design, needs Ben's ruleset):
