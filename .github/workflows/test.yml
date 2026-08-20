@@ -30,6 +30,8 @@ jobs:
           - modules/notice-discord/test
           - modules/dns-record/test
           - modules/notice-github/test
+          - modules/notice-parameter-store/test
+          - modules/efs-access/test
 
     steps:
       - name: "Harden Runner"
@@ -82,6 +84,7 @@ jobs:
             route53.amazonaws.com:443
             s3.amazonaws.com:443
             sns.us-east-1.amazonaws.com:443
+            ssm.us-east-1.amazonaws.com:443
             storage.googleapis.com:443
             sts.us-east-1.amazonaws.com:443
             sts.us-west-2.amazonaws.com:443

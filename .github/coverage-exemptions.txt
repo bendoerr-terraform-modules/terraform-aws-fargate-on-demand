@@ -1,0 +1,7 @@
+# Coverage exemptions — one entry per line: `module` or `module:arm`
+# (arm ∈ test-dir|matrix|dependabot|golangci; bare module = test-dir), '#' comments.
+# An entry suppresses ONLY the named arm's demands for that module
+# (module:dependabot suppresses BOTH its terraform and gomod demands, by design).
+# Stale entries — dead module, or an exemption whose demanded entry exists — are RED.
+# Every entry carries a date and a reason pointing at the work that retires it.
+service  # 2026-08-20 example+test land in PR B (patrol/service-coverage); entry dies there. If PR B is abandoned, this line is the debt record.

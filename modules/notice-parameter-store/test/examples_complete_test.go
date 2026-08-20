@@ -1,9 +1,13 @@
-package test
+package test_test
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -11,9 +15,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/kr/pretty"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func TestDefaults(t *testing.T) {
@@ -24,7 +25,7 @@ func TestDefaults(t *testing.T) {
 
 	tempTestFolder := test_structure.CopyTerraformFolderToTemp(t, rootFolder, terraformFolderRelativeToRoot)
 
-	rndns := random.UniqueId()
+	rndns := random.UniqueID()
 
 	terraformOptions := &terraform.Options{
 		// The path to where our Terraform code is located
@@ -36,13 +37,13 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
-	defer terraform.Destroy(t, terraformOptions)
+	defer terraform.DestroyContext(t, context.Background(), terraformOptions)
 
 	// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
-	terraform.InitAndApply(t, terraformOptions)
+	terraform.InitAndApplyContext(t, context.Background(), terraformOptions)
 
 	// Print out the output for debugging
-	_, _ = pretty.Print(terraform.OutputAll(t, terraformOptions))
+	_, _ = pretty.Print(terraform.OutputAllContext(t, context.Background(), terraformOptions))
 
 	// AWS Session
 	cfg, err := config.LoadDefaultConfig(
@@ -56,15 +57,15 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Get the SNS Topic so that we can send a message
-	snsTopic := terraform.Output(t, terraformOptions, "sns_topic")
-	paramName := terraform.Output(t, terraformOptions, "parameter_name")
+	snsTopic := terraform.OutputContext(t, context.Background(), terraformOptions, "sns_topic")
+	paramName := terraform.OutputContext(t, context.Background(), terraformOptions, "parameter_name")
 
 	// New SNS AWS Client
 	snsSvc := sns.NewFromConfig(cfg)
 
 	// Create an event message
-	testClusterName := random.UniqueId()
-	testServiceName := random.UniqueId()
+	testClusterName := random.UniqueID()
+	testServiceName := random.UniqueID()
 	testEventName := random.RandomString([]string{"start", "active", "inactive", "stop", "foobar"})
 
 	testEvent := map[string]string{
@@ -98,23 +99,37 @@ func TestDefaults(t *testing.T) {
 
 	// Wait to receive the test message
 	stateValue := map[string]string{}
-	timeoutTimer := time.After(time.Second * 10)
+	var lastErr error
+	timeoutTimer := time.After(time.Second * 60)
 	found := false
 	for !found {
 		select {
 		case <-timeoutTimer:
-			t.Errorf("timeout: Failed to valid state, found: \n%s", makediff(testEvent, stateValue))
+			t.Errorf(
+				"timeout: Failed to valid state (last poll error: %v), found: \n%s",
+				lastErr, makediff(testEvent, stateValue),
+			)
 			return
 		default:
-			out, err := ssmSvc.GetParameter(context.TODO(), &ssm.GetParameterInput{Name: &paramName})
-			if err != nil {
-				t.Error(err)
-				return
+			out, getErr := ssmSvc.GetParameter(context.TODO(), &ssm.GetParameterInput{Name: &paramName})
+			if getErr != nil {
+				// Transient SSM errors (throttling, 5xx) are what the 60s poll budget
+				// exists to absorb — only the timeout arm may fail the test, and it
+				// reports the last error so a persistent failure (IAM, bad name) is
+				// the headline, not buried in retry logs.
+				lastErr = getErr
+				t.Logf("GetParameter error (will retry): %v", getErr)
+				time.Sleep(time.Second)
+				continue
 			}
+			lastErr = nil
 
 			v := out.Parameter.Value
 			t.Log("ssm parameter value: " + *v)
 
+			// Fresh map every poll: json.Unmarshal MERGES into an existing map,
+			// so a ghost key seen once would poison DeepEqual forever.
+			stateValue = map[string]string{}
 			err = json.Unmarshal([]byte(*v), &stateValue)
 			if err != nil {
 				t.Error(err)
@@ -123,6 +138,7 @@ func TestDefaults(t *testing.T) {
 
 			if reflect.DeepEqual(testEvent, stateValue) {
 				found = true
+				continue
 			}
 
 			time.Sleep(time.Second)
