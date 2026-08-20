@@ -57,6 +57,62 @@ updates:
     cooldown:
       default-days: 14
 
+  - package-ecosystem: "terraform"
+    directory: "/modules/efs-access"
+    schedule:
+      interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "terraform"
+    directory: "/modules/notice-github"
+    schedule:
+      interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "terraform"
+    directory: "/modules/notice-parameter-store"
+    schedule:
+      interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "terraform"
+    directory: "/modules/service"
+    schedule:
+      interval: "weekly"
+    groups:
+      terraform:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-tf):"
+    cooldown:
+      default-days: 14
+
   - package-ecosystem: "gomod"
     directory: "/modules/persistence/test"
     schedule:
@@ -104,6 +160,51 @@ updates:
 
   - package-ecosystem: "gomod"
     directory: "/modules/dns-record/test"
+    schedule:
+      interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gomod"
+    directory: "/modules/notice-github/test"
+    schedule:
+      interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gomod"
+    directory: "/modules/notice-parameter-store/test"
+    schedule:
+      interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gomod"
+    directory: "/modules/efs-access/test"
     schedule:
       interval: "weekly"
     groups:
