@@ -26,18 +26,18 @@ Concrete casualties of the drift:
 1. **`notice-parameter-store` has a complete house-pattern terratest
    (`test/examples_complete_test.go`) that CI has never executed** — it is absent from the
    matrix. A test that never runs rots silently; nobody knows today whether it passes.
-2. **`service` (653 lines — the ECS cluster/service/task/IAM/SNS core, the thing this module
+1. **`service` (653 lines — the ECS cluster/service/task/IAM/SNS core, the thing this module
    IS) has no example, no test, and no dependabot coverage.** It is exercised by nothing:
    `launcher/examples/complete` wires the upstream `terraform-aws-modules/ecs/aws` registry
    module, *not* this repo's `service` submodule (measured, `ecs.tf:14`) — so there is no
    transitive coverage either. Every green Test gate I've trusted on ~30 dependabot merges
    into this repo said nothing about `service`.
-3. **`efs-access`** has a runnable cost-safe example (`examples/complete`, enable-flags
+1. **`efs-access`** has a runnable cost-safe example (`examples/complete`, enable-flags
    default `false`) and no test.
-4. **`notice-github/test`'s `go.mod` gets no dependabot bumps** while its test runs in CI —
+1. **`notice-github/test`'s `go.mod` gets no dependabot bumps** while its test runs in CI —
    the exact inverse hole: exercised but frozen.
 
-The class is [[remediation-unit-vs-census-unit]]: three hand-maintained rosters over one
+The class is \[\[remediation-unit-vs-census-unit\]\]: three hand-maintained rosters over one
 population, each edited at different times, none checked against the substrate. The next
 submodule added to `modules/` repeats all of this by default.
 
@@ -45,12 +45,12 @@ submodule added to `modules/` repeats all of this by default.
 
 1. **Every existing test runs in CI.** `modules/notice-parameter-store/test` joins the
    matrix; whatever rot its first real run exposes gets fixed in this patrol.
-2. **Every submodule is dependabot-covered.** terraform ecosystem for all 8 module dirs;
+1. **Every submodule is dependabot-covered.** terraform ecosystem for all 8 module dirs;
    gomod for every `modules/*/test` dir that exists (including the new ones below).
-3. **`efs-access` gets a house-pattern terratest** exercising its existing example.
-4. **`service` gets an example + terratest** (scope question Q1 below — bias: include; it is
+1. **`efs-access` gets a house-pattern terratest** exercising its existing example.
+1. **`service` gets an example + terratest** (scope question Q1 below — bias: include; it is
    the heart of the module and the largest uncovered surface).
-5. **A drift tripwire in CI**: a check that fails when the matrix, the dependabot dirs, and
+1. **A drift tripwire in CI**: a check that fails when the matrix, the dependabot dirs, and
    the on-disk population diverge — so this class of rot cannot re-accumulate silently.
    Three-verdict discipline: mismatch is a FAIL with the diff printed; unreadable inputs are
    NOT MEASURED (rc=2), never a silent pass.
@@ -112,7 +112,7 @@ submodule added to `modules/` repeats all of this by default.
 - **Q4 — tripwire placement**: **lint.yml `paperwork` step** (the `lint` job is a reusable-
   workflow call and cannot take steps).
 - **Amendments adopted during the brainstorm**: the tripwire invariant is per-submodule
-  ("every modules/* dir has a test dir AND matrix entry AND dependabot cover"), exemptions
+  ("every modules/\* dir has a test dir AND matrix entry AND dependabot cover"), exemptions
   live in an explicit in-repo allowlist that fails BOTH directions (uncovered-unexempted
   red; stale exemption — dead module or module that grew a test — red), and each arm is
   individually forced red on the pre-fix tree with receipts (Kitten's veto + Lilith's

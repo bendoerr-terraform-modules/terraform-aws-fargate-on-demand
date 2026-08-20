@@ -49,20 +49,23 @@ Go 1.26.0 + terratest v1.0.1, aws-sdk-go-v2, Python 3 + PyYAML (tripwire), GitHu
   `terraform get`). Do NOT probe with raw scp-form `git ls-remote` — port 22 is blocked
   and it hangs; that is not a defect.
 
----
+______________________________________________________________________
 
 # PR A — branch `patrol/coverage-truth`
 
 ### Task 1: Coverage-truth tripwire + per-arm forced-red receipts
 
 **Files:**
+
 - Create: `.github/scripts/coverage-truth.py`
 - Create: `.github/coverage-exemptions.txt`
 - Modify: `.github/workflows/lint.yml` (paperwork job, append one step)
 - Create: `docs/superpowers/receipts/2026-08-20-tripwire-receipts.md`
 
 **Interfaces:**
+
 - Consumes: repo tree as-is (pre-fix — that is the point of the receipts).
+
 - Produces: `python3 .github/scripts/coverage-truth.py` with contract
   **rc=0 PASS / rc=1 RED (each failing arm named + set differences) / rc=2 NOT MEASURED**
   (unreadable or empty input is never a pass). Five arms: `test-dir`, `matrix`,
@@ -71,7 +74,7 @@ Go 1.26.0 + terratest v1.0.1, aws-sdk-go-v2, Python 3 + PyYAML (tripwire), GitHu
   (test-dir arm), never the terraform-ecosystem dependabot requirement; a stale exemption
   (module deleted, or module that has since grown `test/`) is itself RED.
 
-- [ ] **Step 0: Create the branch**
+- \[ \] **Step 0: Create the branch**
 
 ```bash
 git checkout main && git pull && git checkout -b patrol/coverage-truth
@@ -79,7 +82,7 @@ git checkout main && git pull && git checkout -b patrol/coverage-truth
 
 (If the branch already exists with the spec/plan commits, `git checkout patrol/coverage-truth && git pull` instead.)
 
-- [ ] **Step 1: Write the tripwire script**
+- \[ \] **Step 1: Write the tripwire script**
 
 `.github/scripts/coverage-truth.py`, exactly:
 
@@ -236,7 +239,7 @@ print("COVERAGE TRUTH: PASS")
 sys.exit(0)
 ```
 
-- [ ] **Step 2: Create the (initially empty-of-entries) exemption file**
+- \[ \] **Step 2: Create the (initially empty-of-entries) exemption file**
 
 `.github/coverage-exemptions.txt`:
 
@@ -248,7 +251,7 @@ sys.exit(0)
 # Every entry carries a date and a reason pointing at the work that retires it.
 ```
 
-- [ ] **Step 3: Run on the pre-fix tree — capture the natural RED receipt**
+- \[ \] **Step 3: Run on the pre-fix tree — capture the natural RED receipt**
 
 Run from repo root:
 `python3 .github/scripts/coverage-truth.py > /tmp/receipt-natural.txt 2>&1; echo rc=$? >> /tmp/receipt-natural.txt`
@@ -259,7 +262,7 @@ Run from repo root:
 must be RED; `golangci` and `exemptions` OK. If any expected-RED arm prints OK, STOP —
 the script has the blindness Kitten vetoed; fix before proceeding.
 
-- [ ] **Step 4: Force every implemented sub-direction red individually (sabotage receipts)**
+- \[ \] **Step 4: Force every implemented sub-direction red individually (sabotage receipts)**
 
 The invariant is per SUB-DIRECTION, not per arm name (Lilith's count: the five arms
 implement 11 sub-directions; the natural receipt proves 4 — test-dir, matrix-missing,
@@ -274,24 +277,24 @@ this repo's original disease, one layer up:
    valid JSON — malformed JSON gives rc=2 NOT MEASURED, which is the WRONG receipt); run; expect
    `ARM golangci: RED` + rc=1 naming `modules/persistence/test`. Revert with
    `git checkout -- .github/workflows/lint.yml`.
-2. `exemptions` arm (nonexistent module): temporarily add line `ghost-module` to
+1. `exemptions` arm (nonexistent module): temporarily add line `ghost-module` to
    `.github/coverage-exemptions.txt`; run; expect `ARM exemptions: RED`
    "names a module that does not exist". Revert.
-3. `exemptions` arm (grew-a-test): temporarily add line `persistence`; run; expect
+1. `exemptions` arm (grew-a-test): temporarily add line `persistence`; run; expect
    `ARM exemptions: RED` "stale ... grown a test dir". Revert.
-4. `matrix` arm, ghost direction: temporarily append `          - modules/ghost/test` to
+1. `matrix` arm, ghost direction: temporarily append `          - modules/ghost/test` to
    the `matrix.project` list in `.github/workflows/test.yml`; run; expect `ARM matrix: RED`
    "is in the matrix but has no test dir on disk". Revert.
-5. `dependabot` arm, terraform-ghost: temporarily duplicate any terraform entry in
+1. `dependabot` arm, terraform-ghost: temporarily duplicate any terraform entry in
    `.github/dependabot.yml` and change its directory to `"/modules/ghost"`; run; expect
    `ARM dependabot: RED` "in dependabot(terraform) but not on disk". Revert.
-6. `dependabot` arm, gomod-ghost: same duplication with a gomod entry, directory
+1. `dependabot` arm, gomod-ghost: same duplication with a gomod entry, directory
    `"/modules/ghost/test"`; run; expect `ARM dependabot: RED` "in dependabot(gomod) but
    not on disk". Revert.
-7. `golangci` arm, ghost direction: temporarily append `,"modules/ghost/test"` inside the
+1. `golangci` arm, ghost direction: temporarily append `,"modules/ghost/test"` inside the
    `golangci_workdirs` JSON (before the closing `]`, keeping valid JSON); run; expect
    `ARM golangci: RED` "in golangci_workdirs but has no test dir on disk". Revert.
-8. NOT MEASURED contract: run with the exemptions file renamed away; expect
+1. NOT MEASURED contract: run with the exemptions file renamed away; expect
    `NOT MEASURED` + rc=2, NOT a pass. Restore.
 
 End state: 11 implemented sub-directions, 11 seen red (4 natural + 7 planted), plus the
@@ -302,7 +305,7 @@ Capture all outputs (with rc lines, measured WITHOUT a pipe:
 `docs/superpowers/receipts/2026-08-20-tripwire-receipts.md` with a one-line header per
 receipt. These are Kitten's sign-off receipts — per-arm forced red, not forced red overall.
 
-- [ ] **Step 5: Add the paperwork step**
+- \[ \] **Step 5: Add the paperwork step**
 
 In `.github/workflows/lint.yml`, `paperwork` job, append after the
 "Template paperwork done?" step:
@@ -317,7 +320,7 @@ assumption whose measurement is PR A's first CI run: if the step reds with
 `NOT MEASURED - PyYAML unavailable`, add `pypi.org:443` + `files.pythonhosted.org:443` to the
 paperwork allowlist and a `pip install pyyaml` step — do NOT weaken the rc=2 contract.)
 
-- [ ] **Step 6: Commit**
+- \[ \] **Step 6: Commit**
 
 ```bash
 git add .github/scripts/coverage-truth.py .github/coverage-exemptions.txt .github/workflows/lint.yml docs/superpowers/receipts/
@@ -327,14 +330,17 @@ git commit -m "✅ ci: five-arm coverage tripwire with per-arm forced-red receip
 ### Task 2: Test matrix + SSM egress
 
 **Files:**
+
 - Modify: `.github/workflows/test.yml`
 
 **Interfaces:**
+
 - Consumes: nothing from other tasks (matrix entry for a test dir that already exists).
+
 - Produces: matrix containing `modules/notice-parameter-store/test`; allowlist containing
   `ssm.us-east-1.amazonaws.com:443`.
 
-- [ ] **Step 1: Add matrix entry**
+- \[ \] **Step 1: Add matrix entry**
 
 In the `matrix.project` list append (10-space indent, no quotes, matching existing style):
 
@@ -342,7 +348,7 @@ In the `matrix.project` list append (10-space indent, no quotes, matching existi
           - modules/notice-parameter-store/test
 ```
 
-- [ ] **Step 2: Add SSM endpoint to harden-runner allowlist**
+- \[ \] **Step 2: Add SSM endpoint to harden-runner allowlist**
 
 In the `allowed-endpoints:` block, insert alphabetically (after
 `sns.us-east-1.amazonaws.com:443` line region; keep one endpoint per line):
@@ -355,7 +361,7 @@ Reason on the record: the NPS test polls `ssm.GetParameter` from the RUNNER; efs
 `data.aws_ssm_parameter.al2023` also resolves from the runner during plan. Without this the
 first `GetParameter` dies against egress-policy block.
 
-- [ ] **Step 3: prettier check + commit**
+- \[ \] **Step 3: prettier check + commit**
 
 ```bash
 npx prettier@3.3.3 --check .github/workflows/test.yml
@@ -366,17 +372,20 @@ git commit -m "👷 ci: run notice-parameter-store terratest; allow ssm egress"
 ### Task 3: dependabot coverage
 
 **Files:**
+
 - Modify: `.github/dependabot.yml`
 
 **Interfaces:**
+
 - Produces: terraform entries for `/modules/efs-access`, `/modules/notice-github`,
   `/modules/notice-parameter-store`, `/modules/service`; gomod entries for
   `/modules/notice-github/test`, `/modules/notice-parameter-store/test`,
   `/modules/efs-access/test`. (`/modules/service/test` arrives in PR B with the dir.)
+
 - Note: the efs-access/test gomod entry lands in the SAME PR as the dir (Task 4) — safe,
   dependabot reads config only from the default branch post-merge.
 
-- [ ] **Step 1: Add four terraform entries**
+- \[ \] **Step 1: Add four terraform entries**
 
 Duplicate the existing terraform entry shape verbatim for each new directory — for
 `/modules/efs-access` (repeat identically for `/modules/notice-github`,
@@ -398,7 +407,7 @@ Duplicate the existing terraform entry shape verbatim for each new directory —
       default-days: 14
 ```
 
-- [ ] **Step 2: Add three gomod entries**
+- \[ \] **Step 2: Add three gomod entries**
 
 Same duplication from the existing gomod shape — for `/modules/notice-github/test`
 (repeat for `/modules/notice-parameter-store/test`, `/modules/efs-access/test`):
@@ -420,7 +429,7 @@ Same duplication from the existing gomod shape — for `/modules/notice-github/t
       default-days: 14
 ```
 
-- [ ] **Step 3: prettier + commit**
+- \[ \] **Step 3: prettier + commit**
 
 ```bash
 npx prettier@3.3.3 --check .github/dependabot.yml
@@ -431,6 +440,7 @@ git commit -m "⬆️ ci: dependabot covers every submodule and every test dir"
 ### Task 4: efs-access terratest
 
 **Files:**
+
 - Create: `modules/efs-access/test/examples_complete_test.go`
 - Create: `modules/efs-access/test/go.mod` (+ generated `go.sum`)
 - Create: `modules/efs-access/test/.golangci.yml` — copy
@@ -441,13 +451,15 @@ git commit -m "⬆️ ci: dependabot covers every submodule and every test dir"
 - Modify: `.github/workflows/lint.yml` (`golangci_workdirs` += `"modules/efs-access/test"`)
 
 **Interfaces:**
+
 - Consumes: existing `modules/efs-access/examples/complete` (defaults:
   `efs_access_enabled=false`, `create_transfer_bucket=false`; outputs `instance_id`,
   `connect_command`, `mount_path`, `transfer_bucket`; wires `../../../persistence`).
+
 - Produces: `TestDefaultsDisabled` passing in CI.
 
-- [ ] **Step 1: Write the test** (no red phase exists for an infra apply-test; the first
-honest execution is Step 4 against the sandbox)
+- \[ \] **Step 1: Write the test** (no red phase exists for an infra apply-test; the first
+  honest execution is Step 4 against the sandbox)
 
 ⚠️ **The example references `../../../persistence` — copying only the module dir to temp
 dangles that path. Copy the REPO ROOT** (`rootFolder = "../../../"`).
@@ -506,7 +518,7 @@ func TestDefaultsDisabled(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: go.mod**
+- \[ \] **Step 2: go.mod**
 
 `modules/efs-access/test/go.mod` seed (then `go mod tidy` fills the rest):
 
@@ -523,7 +535,7 @@ require (
 Run in `modules/efs-access/test/`: `go mod tidy` → produces go.sum. Then `go vet ./...`
 Expected: clean compile (test not yet run — that's Step 4).
 
-- [ ] **Step 3: rosters**
+- \[ \] **Step 3: rosters**
 
 test.yml matrix += `- modules/efs-access/test` (after the notice-parameter-store line from
 Task 2). lint.yml `golangci_workdirs` value becomes:
@@ -532,7 +544,7 @@ Task 2). lint.yml `golangci_workdirs` value becomes:
 '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test"]'
 ```
 
-- [ ] **Step 4: First execution against the sandbox**
+- \[ \] **Step 4: First execution against the sandbox**
 
 ```bash
 cd modules/efs-access/test
@@ -543,7 +555,7 @@ Expected: PASS (apply → asserts → destroy). If the destroy of EFS mount targ
 that is known-sulky; only a FAILED destroy is a defect. On assert failures: fix the test's
 expectations against measured outputs, not the module.
 
-- [ ] **Step 5: Commit**
+- \[ \] **Step 5: Commit**
 
 ```bash
 git add modules/efs-access/test .github/workflows/test.yml .github/workflows/lint.yml
@@ -553,14 +565,17 @@ git commit -m "✅ (efs-access): terratest for the cost-safe example defaults"
 ### Task 5: notice-parameter-store test modernization (fix-forward)
 
 **Files:**
+
 - Modify: `modules/notice-parameter-store/test/go.mod` (+ go.sum)
 - Modify: `modules/notice-parameter-store/test/examples_complete_test.go` (timeout only)
 
 **Interfaces:**
+
 - Consumes: the existing test (SNS publish → Lambda → SSM parameter round-trip poll).
+
 - Produces: test compiling on terratest v1.0.1 / go 1.26.0 and passing locally.
 
-- [ ] **Step 1: Bump the toolchain and deps**
+- \[ \] **Step 1: Bump the toolchain and deps**
 
 In `modules/notice-parameter-store/test/`:
 
@@ -580,14 +595,14 @@ this test uses (`terraform.Options`, `InitAndApply`, `Destroy`, `OutputAll`,
 If `go vet` reports a removed symbol, fix the call site to the v1.0.1 name — do not pin
 back to 0.47.
 
-- [ ] **Step 2: Widen the propagation window**
+- \[ \] **Step 2: Widen the propagation window**
 
 In `examples_complete_test.go:101`, the poll loop bounds SNS→Lambda→SSM propagation with
 `timeoutTimer := time.After(time.Second * 10)`. A cold Lambda start alone can eat that.
 Change **only the bound**: `time.After(time.Second * 10)` → `time.After(time.Second * 60)`
 (keep the 1s sleep per iteration). The assertion itself (exact JSON round-trip) is untouched.
 
-- [ ] **Step 3: Run locally against the sandbox**
+- \[ \] **Step 3: Run locally against the sandbox**
 
 ```bash
 cd modules/notice-parameter-store/test
@@ -599,7 +614,7 @@ failure as ROT TO FIX (in the test or its example), and record what was found in
 body. Known drift already measured: null-label ref `v0.4.1` in its example ctx.tf (leave —
 works), `environment = "test"` vs house `"testing"` (leave — cosmetic).
 
-- [ ] **Step 4: Commit**
+- \[ \] **Step 4: Commit**
 
 ```bash
 git add modules/notice-parameter-store/test
@@ -609,10 +624,12 @@ git commit -m "⬆️ (notice-parameter-store): modernize never-run test to terr
 ### Task 6: The service exemption + green receipt + PR A
 
 **Files:**
+
 - Modify: `.github/coverage-exemptions.txt`
+
 - Modify: `docs/superpowers/receipts/2026-08-20-tripwire-receipts.md` (append green receipt)
 
-- [ ] **Step 1: Add the dated exemption**
+- \[ \] **Step 1: Add the dated exemption**
 
 Append to `.github/coverage-exemptions.txt`:
 
@@ -620,13 +637,13 @@ Append to `.github/coverage-exemptions.txt`:
 service  # 2026-08-20 example+test land in PR B (patrol/service-coverage); entry dies there. If PR B is abandoned, this line is the debt record.
 ```
 
-- [ ] **Step 2: Green receipt**
+- \[ \] **Step 2: Green receipt**
 
 `python3 .github/scripts/coverage-truth.py > /tmp/receipt-green.txt 2>&1; echo rc=$? >> /tmp/receipt-green.txt`
 Expected: all five arms OK, `COVERAGE TRUTH: PASS`, rc=0, population line
 `8 modules, 7 test dirs, 1 exemptions`. Append to the receipts doc.
 
-- [ ] **Step 3: Commit, push, open PR A**
+- \[ \] **Step 3: Commit, push, open PR A**
 
 ```bash
 git add .github/coverage-exemptions.txt docs/superpowers/receipts/
@@ -640,13 +657,14 @@ body: problem table from the spec, the receipts file link, wall-clock note (+25�
 and the PR B forward-reference. Then the patrol arc's review gates take over (CI watch,
 /review ×2, Kitten sign-off, merge per Hard Rule #1 — my PR, my button after his APPROVE).
 
----
+______________________________________________________________________
 
 # PR B — branch `patrol/service-coverage` (created from main AFTER PR A merges)
 
 ### Task 7: service example (parked at zero)
 
 **Files:**
+
 - Precondition gate (Step 0): PR A verified MERGED before any work.
 - Create: `modules/service/examples/complete/ctx.tf`
 - Create: `modules/service/examples/complete/versions.tf`
@@ -654,6 +672,7 @@ and the PR B forward-reference. Then the patrol arc's review gates take over (CI
 - Create: `modules/service/examples/complete/service_complete.tf`
 
 **Interfaces:**
+
 - Consumes: `modules/service` (all REQUIRED vars listed below get values),
   `modules/persistence` (EFS id/access-point/policy/SG outputs),
   `modules/dns-record` (`create_zone=true` → `zone_id`, `record_name`,
@@ -671,7 +690,7 @@ defaults — pass `false`, `null`, `null`. `task_cpu`/`task_memory` are STRINGS
 `desired_count = 0` is hardcoded in the module with `ignore_changes` — zero Fargate
 compute by construction. The watchdog sidecar image is never pulled at desired 0.
 
-- [ ] **Step 0: Verify PR A merged, create the branch**
+- \[ \] **Step 0: Verify PR A merged, create the branch**
 
 ```bash
 gh pr view patrol/coverage-truth -R bendoerr-terraform-modules/terraform-aws-fargate-on-demand --json state,mergeCommit
@@ -684,7 +703,7 @@ built on a pre-tripwire tree makes Task 9's receipts lie. Then:
 git checkout main && git pull && git checkout -b patrol/service-coverage
 ```
 
-- [ ] **Step 1: ctx.tf** (house pattern)
+- \[ \] **Step 1: ctx.tf** (house pattern)
 
 ```hcl
 variable "namespace" {
@@ -701,7 +720,7 @@ module "context" {
 }
 ```
 
-- [ ] **Step 2: versions.tf** — ⚠️ floor is 1.9.0 here, NOT the house 1.3.0
+- \[ \] **Step 2: versions.tf** — ⚠️ floor is 1.9.0 here, NOT the house 1.3.0
   (`modules/service/versions.tf` demands `>= 1.9.0` for cross-variable validation):
 
 ```hcl
@@ -721,7 +740,7 @@ provider "aws" {
 }
 ```
 
-- [ ] **Step 3: vpc.tf** — the house version, exactly:
+- \[ \] **Step 3: vpc.tf** — the house version, exactly:
 
 ```hcl
 module "label_network" {
@@ -745,7 +764,7 @@ module "vpc" {
 }
 ```
 
-- [ ] **Step 4: service_complete.tf**
+- \[ \] **Step 4: service_complete.tf**
 
 ```hcl
 module "fod_dns_record" {
@@ -826,7 +845,7 @@ output "svc_control_policy_arn" {
 }
 ```
 
-- [ ] **Step 5: Validate + commit**
+- \[ \] **Step 5: Validate + commit**
 
 ```bash
 cd modules/service/examples/complete && terraform init -backend=false && terraform validate
@@ -840,6 +859,7 @@ same-12-hours no-charge window; the test's defer-destroy removes it in minutes.)
 ### Task 8: service terratest
 
 **Files:**
+
 - Create: `modules/service/test/examples_complete_test.go`
 - Create: `modules/service/test/go.mod` (+ tidy → go.sum)
 - Create: `modules/service/test/.golangci.yml` — copy
@@ -847,12 +867,14 @@ same-12-hours no-charge window; the test's defer-destroy removes it in minutes.)
   repo umbrella path by design; all existing copies are identical).
 
 **Interfaces:**
+
 - Consumes: Task 7's outputs by exact name.
+
 - Produces: `TestServiceParkedAtZero` — Kitten's Q3 contract: cluster+service exist,
   desired=0, taskdef ACTIVE, IAM role assumable by ecs-tasks, SNS topic wired, launcher
   control policy real.
 
-- [ ] **Step 1: go.mod seed** (then `go mod tidy` — it adds the ecs/iam/sns service
+- \[ \] **Step 1: go.mod seed** (then `go mod tidy` — it adds the ecs/iam/sns service
   clients as direct requires at whatever versions co-resolve; do NOT hand-pin them)
 
 ```
@@ -866,7 +888,7 @@ require (
 )
 ```
 
-- [ ] **Step 2: the test**
+- \[ \] **Step 2: the test**
 
 ```go
 package test
@@ -988,9 +1010,9 @@ func TestServiceParkedAtZero(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: `go mod tidy && go vet ./...`** — expected clean.
+- \[ \] **Step 3: `go mod tidy && go vet ./...`** — expected clean.
 
-- [ ] **Step 4: Run locally against the sandbox**
+- \[ \] **Step 4: Run locally against the sandbox**
 
 ```bash
 cd modules/service/test
@@ -1002,7 +1024,7 @@ Expected: PASS with zero Fargate tasks launched. Any apply failure inside
 fix only if contained (a validation/typo class); anything behavioral escalates to a
 design conversation, not a silent patch.
 
-- [ ] **Step 5: Commit**
+- \[ \] **Step 5: Commit**
 
 ```bash
 git add modules/service/test
@@ -1012,12 +1034,16 @@ git commit -m "✅ (service): terratest — cluster/service/taskdef/IAM/SNS asse
 ### Task 9: Retire the exemption; rosters pick up service
 
 **Files:**
+
 - Modify: `.github/workflows/test.yml` (matrix += `modules/service/test`)
+
 - Modify: `.github/workflows/lint.yml` (`golangci_workdirs` += `"modules/service/test"`)
+
 - Modify: `.github/dependabot.yml` (gomod += `/modules/service/test`, same shape as Task 3 Step 2)
+
 - Modify: `.github/coverage-exemptions.txt` (delete the `service` line — comments stay)
 
-- [ ] **Step 1: All four edits, verbatim**
+- \[ \] **Step 1: All four edits, verbatim**
 
 1. `.github/workflows/test.yml` — append to the `matrix.project` list (10-space indent,
    no quotes):
@@ -1056,13 +1082,13 @@ git commit -m "✅ (service): terratest — cluster/service/taskdef/IAM/SNS asse
    comments stay; the file must continue to exist even entry-less — the tripwire refuses
    rc=2 if it is missing).
 
-- [ ] **Step 2: Tripwire green with EMPTY allowlist — the patrol's closing receipt**
+- \[ \] **Step 2: Tripwire green with EMPTY allowlist — the patrol's closing receipt**
 
 `python3 .github/scripts/coverage-truth.py` → expected: five arms OK,
 `population: 8 modules, 8 test dirs, 0 exemptions`, rc=0. Append receipt to the receipts
 doc (this file rides PR B).
 
-- [ ] **Step 3: prettier + commit + push + PR B**
+- \[ \] **Step 3: prettier + commit + push + PR B**
 
 ```bash
 npx prettier@3.3.3 --check .github/workflows/test.yml .github/workflows/lint.yml .github/dependabot.yml
@@ -1073,18 +1099,18 @@ git push -u origin patrol/service-coverage
 
 Open PR B; arc gates as usual.
 
----
+______________________________________________________________________
 
 # Post-ship (not part of either PR)
 
 ### Task 10: The dated Q2 follow-up + the standing recon step
 
-- [ ] **Step 1:** `gh issue create` on the repo: title
+- \[ \] **Step 1:** `gh issue create` on the repo: title
   `✨ (efs-access): enabled=true terratest pass (real instance path)`, body states the
   defaults-only decision (family brainstorm 2026-08-20), the flake-surface reasoning, a
   separate-test-func + own-defer requirement, and **re-check date 2026-11-20** — plus the
   rule that any patrol touching this repo re-reads open follow-up issues first.
-- [ ] **Step 2:** In `~/omyac`, edit `.claude/skills/renovation-patrol/SKILL.md`: in the
+- \[ \] **Step 2:** In `~/omyac`, edit `.claude/skills/renovation-patrol/SKILL.md`: in the
   recon guidance (before step 2 of the arc), add one sentence: *"Recon includes re-reading
   open follow-up issues filed by prior patrols (`gh issue list --author @me` across the
   org + working repos) — a follow-up only exists if something re-reads it."* Commit to
