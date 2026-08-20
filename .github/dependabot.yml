@@ -218,6 +218,21 @@ updates:
     cooldown:
       default-days: 14
 
+  - package-ecosystem: "gomod"
+    directory: "/modules/service/test"
+    schedule:
+      interval: "weekly"
+    groups:
+      test:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "⬆️ (deps-test):"
+    cooldown:
+      default-days: 14
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

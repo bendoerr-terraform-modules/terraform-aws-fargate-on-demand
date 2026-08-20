@@ -502,3 +502,16 @@ population: 8 modules, 7 test dirs, 1 exemptions
 COVERAGE TRUTH: PASS
 rc=0
 ```
+
+## PR B closing receipt — the exemption retired, the allowlist empty
+
+```text
+ARM test-dir: OK
+ARM matrix: OK
+ARM dependabot: OK
+ARM golangci: OK
+ARM exemptions: OK
+population: 8 modules, 8 test dirs, 0 exemptions
+COVERAGE TRUTH: PASS
+rc=0
+```

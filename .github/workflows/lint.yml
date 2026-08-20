@@ -27,7 +27,7 @@ jobs:
     uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@63ce31cf4d1506a783227a4eb44f6d24d299b776 # v1.2.8
     with:
       golangci: true
-      golangci_workdirs: '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test"]'
+      golangci_workdirs: '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test","modules/service/test"]'
       terraform_docs: false
       tflint_version: ""
       markdownlint_flags: ""
