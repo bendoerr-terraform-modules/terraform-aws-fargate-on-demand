@@ -253,7 +253,8 @@ sys.exit(0)
 Run from repo root:
 `python3 .github/scripts/coverage-truth.py > /tmp/receipt-natural.txt 2>&1; echo rc=$? >> /tmp/receipt-natural.txt`
 (rc goes INTO the receipt file, measured without a pipe — same convention as Step 4.)
-Expected: `rc=1`. Arms `test-dir` (efs-access, service), `matrix`
+**This natural receipt is section 1 of `docs/superpowers/receipts/2026-08-20-tripwire-receipts.md`**
+— do not leave it in /tmp. Expected: `rc=1`. Arms `test-dir` (efs-access, service), `matrix`
 (notice-parameter-store missing), `dependabot` (4 terraform dirs + 2 gomod dirs missing)
 must be RED; `golangci` and `exemptions` OK. If any expected-RED arm prints OK, STOP —
 the script has the blindness Kitten vetoed; fix before proceeding.
