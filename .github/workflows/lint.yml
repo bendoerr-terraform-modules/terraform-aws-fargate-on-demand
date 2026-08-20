@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@53520eb907abc8b7ffc15705e42123c28739f176 # fix/pin-golangci-and-gcs-egress — binding proof for workflows#25; repin to the v1.2.8 tag SHA once cut
+    uses: bendoerr-terraform-modules/workflows/.github/workflows/lint.yml@63ce31cf4d1506a783227a4eb44f6d24d299b776 # v1.2.8
     with:
       golangci: true
       golangci_workdirs: '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test"]'
