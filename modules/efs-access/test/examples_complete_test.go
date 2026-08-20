@@ -1,6 +1,7 @@
-package test
+package test_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/random"
@@ -30,10 +31,10 @@ func TestDefaultsDisabled(t *testing.T) {
 		},
 	}
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+	defer terraform.DestroyContext(t, context.Background(), terraformOptions)
+	terraform.InitAndApplyContext(t, context.Background(), terraformOptions)
 
-	outputs := terraform.OutputAll(t, terraformOptions)
+	outputs := terraform.OutputAllContext(t, context.Background(), terraformOptions)
 
 	// Example defaults keep the instance and bucket off: those outputs must be
 	// null/empty, while the mount_path passthrough must be a non-empty string.

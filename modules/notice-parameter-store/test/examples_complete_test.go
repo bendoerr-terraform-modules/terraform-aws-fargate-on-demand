@@ -1,4 +1,4 @@
-package test
+package test_test
 
 import (
 	"context"
@@ -37,13 +37,13 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
-	defer terraform.Destroy(t, terraformOptions)
+	defer terraform.DestroyContext(t, context.Background(), terraformOptions)
 
 	// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
-	terraform.InitAndApply(t, terraformOptions)
+	terraform.InitAndApplyContext(t, context.Background(), terraformOptions)
 
 	// Print out the output for debugging
-	_, _ = pretty.Print(terraform.OutputAll(t, terraformOptions))
+	_, _ = pretty.Print(terraform.OutputAllContext(t, context.Background(), terraformOptions))
 
 	// AWS Session
 	cfg, err := config.LoadDefaultConfig(
@@ -57,8 +57,8 @@ func TestDefaults(t *testing.T) {
 	}
 
 	// Get the SNS Topic so that we can send a message
-	snsTopic := terraform.Output(t, terraformOptions, "sns_topic")
-	paramName := terraform.Output(t, terraformOptions, "parameter_name")
+	snsTopic := terraform.OutputContext(t, context.Background(), terraformOptions, "sns_topic")
+	paramName := terraform.OutputContext(t, context.Background(), terraformOptions, "parameter_name")
 
 	// New SNS AWS Client
 	snsSvc := sns.NewFromConfig(cfg)
@@ -107,9 +107,9 @@ func TestDefaults(t *testing.T) {
 			t.Errorf("timeout: Failed to valid state, found: \n%s", makediff(testEvent, stateValue))
 			return
 		default:
-			out, err := ssmSvc.GetParameter(context.TODO(), &ssm.GetParameterInput{Name: &paramName})
-			if err != nil {
-				t.Error(err)
+			out, getErr := ssmSvc.GetParameter(context.TODO(), &ssm.GetParameterInput{Name: &paramName})
+			if getErr != nil {
+				t.Error(getErr)
 				return
 			}
 
