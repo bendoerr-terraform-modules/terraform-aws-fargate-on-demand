@@ -51,7 +51,7 @@ Go 1.26.0 + terratest v1.0.1, aws-sdk-go-v2, Python 3 + PyYAML (tripwire), GitHu
 
 ______________________________________________________________________
 
-# PR A — branch `patrol/coverage-truth`
+## PR A — branch `patrol/coverage-truth`
 
 ### Task 1: Coverage-truth tripwire + per-arm forced-red receipts
 
@@ -243,7 +243,7 @@ sys.exit(0)
 
 `.github/coverage-exemptions.txt`:
 
-```
+```text
 # Coverage exemptions — one module name per line, '#' comments.
 # An entry suppresses ONLY the "module has no test dir" arm. It does NOT
 # suppress the terraform dependabot requirement. A stale entry (module gone,
@@ -282,7 +282,7 @@ this repo's original disease, one layer up:
    "names a module that does not exist". Revert.
 1. `exemptions` arm (grew-a-test): temporarily add line `persistence`; run; expect
    `ARM exemptions: RED` "stale ... grown a test dir". Revert.
-1. `matrix` arm, ghost direction: temporarily append `          - modules/ghost/test` to
+1. `matrix` arm, ghost direction: temporarily append `- modules/ghost/test` (10-space indent) to
    the `matrix.project` list in `.github/workflows/test.yml`; run; expect `ARM matrix: RED`
    "is in the matrix but has no test dir on disk". Revert.
 1. `dependabot` arm, terraform-ghost: temporarily duplicate any terraform entry in
@@ -470,51 +470,51 @@ dangles that path. Copy the REPO ROOT** (`rootFolder = "../../../"`).
 package test
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+    "github.com/gruntwork-io/terratest/modules/random"
+    "github.com/gruntwork-io/terratest/modules/terraform"
+    test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
 
 func TestDefaultsDisabled(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	// The example sources ../../../persistence, so the copied tree must be the
-	// repo root or that relative path dangles in the temp dir.
-	rootFolder := "../../../"
-	terraformFolderRelativeToRoot := "modules/efs-access/examples/complete"
+    // The example sources ../../../persistence, so the copied tree must be the
+    // repo root or that relative path dangles in the temp dir.
+    rootFolder := "../../../"
+    terraformFolderRelativeToRoot := "modules/efs-access/examples/complete"
 
-	tempTestFolder := test_structure.CopyTerraformFolderToTemp(
-		t, rootFolder, terraformFolderRelativeToRoot,
-	)
+    tempTestFolder := test_structure.CopyTerraformFolderToTemp(
+        t, rootFolder, terraformFolderRelativeToRoot,
+    )
 
-	rndns := random.UniqueId()
+    rndns := random.UniqueId()
 
-	terraformOptions := &terraform.Options{
-		TerraformDir: tempTestFolder,
-		Upgrade:      true,
-		Vars: map[string]interface{}{
-			"namespace": rndns,
-		},
-	}
+    terraformOptions := &terraform.Options{
+        TerraformDir: tempTestFolder,
+        Upgrade:      true,
+        Vars: map[string]interface{}{
+            "namespace": rndns,
+        },
+    }
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+    defer terraform.Destroy(t, terraformOptions)
+    terraform.InitAndApply(t, terraformOptions)
 
-	outputs := terraform.OutputAll(t, terraformOptions)
+    outputs := terraform.OutputAll(t, terraformOptions)
 
-	// Example defaults keep the instance and bucket off: those outputs must be
-	// null/empty, while the mount_path passthrough must be a non-empty string.
-	for _, key := range []string{"instance_id", "connect_command", "transfer_bucket"} {
-		if v, ok := outputs[key]; ok && v != nil && v != "" {
-			t.Errorf("output %q should be null with example defaults, got %#v", key, v)
-		}
-	}
-	mp, ok := outputs["mount_path"].(string)
-	if !ok || mp == "" {
-		t.Errorf("output mount_path should be a non-empty string, got %#v", outputs["mount_path"])
-	}
+    // Example defaults keep the instance and bucket off: those outputs must be
+    // null/empty, while the mount_path passthrough must be a non-empty string.
+    for _, key := range []string{"instance_id", "connect_command", "transfer_bucket"} {
+        if v, ok := outputs[key]; ok && v != nil && v != "" {
+            t.Errorf("output %q should be null with example defaults, got %#v", key, v)
+        }
+    }
+    mp, ok := outputs["mount_path"].(string)
+    if !ok || mp == "" {
+        t.Errorf("output mount_path should be a non-empty string, got %#v", outputs["mount_path"])
+    }
 }
 ```
 
@@ -522,13 +522,13 @@ func TestDefaultsDisabled(t *testing.T) {
 
 `modules/efs-access/test/go.mod` seed (then `go mod tidy` fills the rest):
 
-```
+```text
 module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/modules/efs-access/test
 
 go 1.26.0
 
 require (
-	github.com/gruntwork-io/terratest v1.0.1
+    github.com/gruntwork-io/terratest v1.0.1
 )
 ```
 
@@ -540,7 +540,7 @@ Expected: clean compile (test not yet run — that's Step 4).
 test.yml matrix += `- modules/efs-access/test` (after the notice-parameter-store line from
 Task 2). lint.yml `golangci_workdirs` value becomes:
 
-```
+```text
 '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test"]'
 ```
 
@@ -633,7 +633,7 @@ git commit -m "⬆️ (notice-parameter-store): modernize never-run test to terr
 
 Append to `.github/coverage-exemptions.txt`:
 
-```
+```text
 service  # 2026-08-20 example+test land in PR B (patrol/service-coverage); entry dies there. If PR B is abandoned, this line is the debt record.
 ```
 
@@ -659,7 +659,7 @@ and the PR B forward-reference. Then the patrol arc's review gates take over (CI
 
 ______________________________________________________________________
 
-# PR B — branch `patrol/service-coverage` (created from main AFTER PR A merges)
+## PR B — branch `patrol/service-coverage` (created from main AFTER PR A merges)
 
 ### Task 7: service example (parked at zero)
 
@@ -877,14 +877,14 @@ same-12-hours no-charge window; the test's defer-destroy removes it in minutes.)
 - \[ \] **Step 1: go.mod seed** (then `go mod tidy` — it adds the ecs/iam/sns service
   clients as direct requires at whatever versions co-resolve; do NOT hand-pin them)
 
-```
+```text
 module github.com/bendoerr-terraform-modules/terraform-aws-fargate-on-demand/modules/service/test
 
 go 1.26.0
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.32.34
-	github.com/gruntwork-io/terratest v1.0.1
+    github.com/aws/aws-sdk-go-v2/config v1.32.34
+    github.com/gruntwork-io/terratest v1.0.1
 )
 ```
 
@@ -894,119 +894,119 @@ require (
 package test
 
 import (
-	"context"
-	"net/url"
-	"strings"
-	"testing"
+    "context"
+    "net/url"
+    "strings"
+    "testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	"github.com/aws/aws-sdk-go-v2/service/iam"
-	"github.com/aws/aws-sdk-go-v2/service/sns"
-	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/config"
+    "github.com/aws/aws-sdk-go-v2/service/ecs"
+    "github.com/aws/aws-sdk-go-v2/service/iam"
+    "github.com/aws/aws-sdk-go-v2/service/sns"
+    "github.com/gruntwork-io/terratest/modules/random"
+    "github.com/gruntwork-io/terratest/modules/terraform"
+    test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
 
 func TestServiceParkedAtZero(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	// The example sources ../../../dns-record and ../../../persistence, so the
-	// copied tree must be the repo root or those relative paths dangle.
-	rootFolder := "../../../"
-	terraformFolderRelativeToRoot := "modules/service/examples/complete"
+    // The example sources ../../../dns-record and ../../../persistence, so the
+    // copied tree must be the repo root or those relative paths dangle.
+    rootFolder := "../../../"
+    terraformFolderRelativeToRoot := "modules/service/examples/complete"
 
-	tempTestFolder := test_structure.CopyTerraformFolderToTemp(
-		t, rootFolder, terraformFolderRelativeToRoot,
-	)
+    tempTestFolder := test_structure.CopyTerraformFolderToTemp(
+        t, rootFolder, terraformFolderRelativeToRoot,
+    )
 
-	// Lowercased: the namespace feeds a DNS zone name in the example.
-	rndns := strings.ToLower(random.UniqueId())
+    // Lowercased: the namespace feeds a DNS zone name in the example.
+    rndns := strings.ToLower(random.UniqueId())
 
-	terraformOptions := &terraform.Options{
-		TerraformDir: tempTestFolder,
-		Upgrade:      true,
-		Vars: map[string]interface{}{
-			"namespace": rndns,
-		},
-	}
+    terraformOptions := &terraform.Options{
+        TerraformDir: tempTestFolder,
+        Upgrade:      true,
+        Vars: map[string]interface{}{
+            "namespace": rndns,
+        },
+    }
 
-	defer terraform.Destroy(t, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
+    defer terraform.Destroy(t, terraformOptions)
+    terraform.InitAndApply(t, terraformOptions)
 
-	clusterName := terraform.Output(t, terraformOptions, "ecs_cluster_name")
-	serviceName := terraform.Output(t, terraformOptions, "ecs_service_name")
-	topicArn := terraform.Output(t, terraformOptions, "events_topic_arn")
-	roleName := terraform.Output(t, terraformOptions, "service_role_name")
-	controlPolicyArn := terraform.Output(t, terraformOptions, "svc_control_policy_arn")
+    clusterName := terraform.Output(t, terraformOptions, "ecs_cluster_name")
+    serviceName := terraform.Output(t, terraformOptions, "ecs_service_name")
+    topicArn := terraform.Output(t, terraformOptions, "events_topic_arn")
+    roleName := terraform.Output(t, terraformOptions, "service_role_name")
+    controlPolicyArn := terraform.Output(t, terraformOptions, "svc_control_policy_arn")
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
-	if err != nil {
-		t.Fatal(err)
-	}
+    cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+    if err != nil {
+        t.Fatal(err)
+    }
 
-	// Service exists on the module's cluster, ACTIVE, parked at zero.
-	ecsClient := ecs.NewFromConfig(cfg)
-	svcOut, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
-		Cluster:  aws.String(clusterName),
-		Services: []string{serviceName},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(svcOut.Services) != 1 {
-		t.Fatalf("expected exactly 1 service, got %d", len(svcOut.Services))
-	}
-	svc := svcOut.Services[0]
-	if aws.ToString(svc.Status) != "ACTIVE" {
-		t.Errorf("service status should be ACTIVE, got %q", aws.ToString(svc.Status))
-	}
-	if svc.DesiredCount != 0 {
-		t.Errorf("desired count should be 0 (scale-to-zero is the native state), got %d", svc.DesiredCount)
-	}
+    // Service exists on the module's cluster, ACTIVE, parked at zero.
+    ecsClient := ecs.NewFromConfig(cfg)
+    svcOut, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
+        Cluster:  aws.String(clusterName),
+        Services: []string{serviceName},
+    })
+    if err != nil {
+        t.Fatal(err)
+    }
+    if len(svcOut.Services) != 1 {
+        t.Fatalf("expected exactly 1 service, got %d", len(svcOut.Services))
+    }
+    svc := svcOut.Services[0]
+    if aws.ToString(svc.Status) != "ACTIVE" {
+        t.Errorf("service status should be ACTIVE, got %q", aws.ToString(svc.Status))
+    }
+    if svc.DesiredCount != 0 {
+        t.Errorf("desired count should be 0 (scale-to-zero is the native state), got %d", svc.DesiredCount)
+    }
 
-	// The registered task definition is ACTIVE.
-	tdOut, err := ecsClient.DescribeTaskDefinition(context.TODO(), &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: svc.TaskDefinition,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(tdOut.TaskDefinition.Status) != "ACTIVE" {
-		t.Errorf("task definition status should be ACTIVE, got %q", tdOut.TaskDefinition.Status)
-	}
+    // The registered task definition is ACTIVE.
+    tdOut, err := ecsClient.DescribeTaskDefinition(context.TODO(), &ecs.DescribeTaskDefinitionInput{
+        TaskDefinition: svc.TaskDefinition,
+    })
+    if err != nil {
+        t.Fatal(err)
+    }
+    if string(tdOut.TaskDefinition.Status) != "ACTIVE" {
+        t.Errorf("task definition status should be ACTIVE, got %q", tdOut.TaskDefinition.Status)
+    }
 
-	// The task role trusts ecs-tasks.amazonaws.com.
-	iamClient := iam.NewFromConfig(cfg)
-	role, err := iamClient.GetRole(context.TODO(), &iam.GetRoleInput{RoleName: aws.String(roleName)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	doc, err := url.QueryUnescape(aws.ToString(role.Role.AssumeRolePolicyDocument))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(doc, "ecs-tasks.amazonaws.com") {
-		t.Errorf("assume-role policy does not trust ecs-tasks.amazonaws.com: %s", doc)
-	}
+    // The task role trusts ecs-tasks.amazonaws.com.
+    iamClient := iam.NewFromConfig(cfg)
+    role, err := iamClient.GetRole(context.TODO(), &iam.GetRoleInput{RoleName: aws.String(roleName)})
+    if err != nil {
+        t.Fatal(err)
+    }
+    doc, err := url.QueryUnescape(aws.ToString(role.Role.AssumeRolePolicyDocument))
+    if err != nil {
+        t.Fatal(err)
+    }
+    if !strings.Contains(doc, "ecs-tasks.amazonaws.com") {
+        t.Errorf("assume-role policy does not trust ecs-tasks.amazonaws.com: %s", doc)
+    }
 
-	// The launcher-control policy the module exports is a real, reachable policy.
-	_, err = iamClient.GetPolicy(context.TODO(), &iam.GetPolicyInput{
-		PolicyArn: aws.String(controlPolicyArn),
-	})
-	if err != nil {
-		t.Errorf("svc control policy not reachable: %v", err)
-	}
+    // The launcher-control policy the module exports is a real, reachable policy.
+    _, err = iamClient.GetPolicy(context.TODO(), &iam.GetPolicyInput{
+        PolicyArn: aws.String(controlPolicyArn),
+    })
+    if err != nil {
+        t.Errorf("svc control policy not reachable: %v", err)
+    }
 
-	// The events topic is real and reachable.
-	snsClient := sns.NewFromConfig(cfg)
-	_, err = snsClient.GetTopicAttributes(context.TODO(), &sns.GetTopicAttributesInput{
-		TopicArn: aws.String(topicArn),
-	})
-	if err != nil {
-		t.Errorf("events topic not reachable: %v", err)
-	}
+    // The events topic is real and reachable.
+    snsClient := sns.NewFromConfig(cfg)
+    _, err = snsClient.GetTopicAttributes(context.TODO(), &sns.GetTopicAttributesInput{
+        TopicArn: aws.String(topicArn),
+    })
+    if err != nil {
+        t.Errorf("events topic not reachable: %v", err)
+    }
 }
 ```
 
@@ -1052,14 +1052,14 @@ git commit -m "✅ (service): terratest — cluster/service/taskdef/IAM/SNS asse
           - modules/service/test
 ```
 
-2. `.github/workflows/lint.yml` — `golangci_workdirs` becomes (single-line JSON string,
+1. `.github/workflows/lint.yml` — `golangci_workdirs` becomes (single-line JSON string,
    single-quoted):
 
-```
+```text
 '["modules/launcher/test","modules/persistence/test","modules/dns-record/test","modules/notice-github/test","modules/notice-discord/test","modules/notice-parameter-store/test","modules/efs-access/test","modules/service/test"]'
 ```
 
-3. `.github/dependabot.yml` — append this gomod entry:
+1. `.github/dependabot.yml` — append this gomod entry:
 
 ```yaml
   - package-ecosystem: "gomod"
@@ -1078,7 +1078,7 @@ git commit -m "✅ (service): terratest — cluster/service/taskdef/IAM/SNS asse
       default-days: 14
 ```
 
-4. `.github/coverage-exemptions.txt` — delete the line starting `service` (the header
+1. `.github/coverage-exemptions.txt` — delete the line starting `service` (the header
    comments stay; the file must continue to exist even entry-less — the tripwire refuses
    rc=2 if it is missing).
 
@@ -1101,7 +1101,7 @@ Open PR B; arc gates as usual.
 
 ______________________________________________________________________
 
-# Post-ship (not part of either PR)
+## Post-ship (not part of either PR)
 
 ### Task 10: The dated Q2 follow-up + the standing recon step
 

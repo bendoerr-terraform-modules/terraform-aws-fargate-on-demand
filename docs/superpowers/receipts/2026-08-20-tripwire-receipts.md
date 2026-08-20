@@ -12,7 +12,7 @@ Every rc line is measured without a pipe (`cmd > f 2>&1; echo rc=$? >> f`).
 
 ## 1. Natural red — pre-fix tree at `3b52aa8` (fires test-dir ×1, matrix-missing, dependabot tf-missing + gomod-missing)
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -34,7 +34,7 @@ rc=1
 
 ## 2. Plant: golangci entry removed (`"modules/persistence/test"` deleted from workdirs) — golangci missing-direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -57,7 +57,7 @@ rc=1
 
 ## 3. Plant: exemption `ghost-module` — exemptions nonexistent-module direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -80,7 +80,7 @@ rc=1
 
 ## 4. Plant: exemption `persistence` — exemptions stale (grew-a-test) direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -103,7 +103,7 @@ rc=1
 
 ## 5. Plant: matrix entry `modules/ghost/test` — matrix ghost (configured-but-not-on-disk) direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -126,7 +126,7 @@ rc=1
 
 ## 6. Plant: dependabot terraform dir `/modules/ghost` — dependabot terraform-ghost direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -149,7 +149,7 @@ rc=1
 
 ## 7. Plant: dependabot gomod dir `/modules/ghost/test` — dependabot gomod-ghost direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -172,7 +172,7 @@ rc=1
 
 ## 8. Plant: golangci workdir `modules/ghost/test` — golangci ghost direction
 
-```
+```text
 ARM test-dir: RED
   - modules/efs-access has no test/ dir and no exemption
   - modules/service has no test/ dir and no exemption
@@ -195,14 +195,14 @@ rc=1
 
 ## 9. Refusal control: exemptions file absent — NOT MEASURED, never a pass
 
-```
+```text
 NOT MEASURED - .github/coverage-exemptions.txt missing - deleting the allowlist is not a way to pass
 rc=2
 ```
 
 ## 10. PR A end-state green — all five arms OK with exactly one dated exemption
 
-```
+```text
 ARM test-dir: OK
 ARM matrix: OK
 ARM dependabot: OK
