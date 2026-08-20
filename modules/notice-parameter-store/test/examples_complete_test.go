@@ -109,13 +109,19 @@ func TestDefaults(t *testing.T) {
 		default:
 			out, getErr := ssmSvc.GetParameter(context.TODO(), &ssm.GetParameterInput{Name: &paramName})
 			if getErr != nil {
-				t.Error(getErr)
-				return
+				// Transient SSM errors (throttling, 5xx) are what the 60s poll budget
+				// exists to absorb — only the timeout arm may fail the test.
+				t.Logf("GetParameter transient error (will retry): %v", getErr)
+				time.Sleep(time.Second)
+				continue
 			}
 
 			v := out.Parameter.Value
 			t.Log("ssm parameter value: " + *v)
 
+			// Fresh map every poll: json.Unmarshal MERGES into an existing map,
+			// so a ghost key seen once would poison DeepEqual forever.
+			stateValue = map[string]string{}
 			err = json.Unmarshal([]byte(*v), &stateValue)
 			if err != nil {
 				t.Error(err)

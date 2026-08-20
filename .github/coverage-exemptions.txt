@@ -1,5 +1,6 @@
-# Coverage exemptions — one module name per line, '#' comments.
-# An entry suppresses ONLY the "module has no test dir" arm. It does NOT
+# Coverage exemptions — one entry per line: `module` or `module:arm`
+# (arm ∈ test-dir|matrix|dependabot|golangci; bare module = test-dir), '#' comments.
+# An entry suppresses ONLY the named arm's demands for that module. It does NOT
 # suppress the terraform dependabot requirement. A stale entry (module gone,
 # or module that has since grown a test dir) turns the exemptions arm RED.
 # Every entry carries a date and a reason pointing at the work that retires it.

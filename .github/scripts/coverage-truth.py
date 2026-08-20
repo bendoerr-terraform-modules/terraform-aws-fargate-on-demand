@@ -7,10 +7,17 @@ Verdicts:
   rc=1 RED           (every failing arm named, set differences listed)
   rc=2 NOT MEASURED  (an input could not be read/parsed, or a population was
                       empty where empty cannot be a clean run)
+
+Exemption file format: one entry per line, `module` or `module:arm` where arm is
+one of test-dir|matrix|dependabot|golangci; bare `module` means test-dir.
+An exemption suppresses only that arm's demands for that module; stale entries
+(dead module, or a test-dir exemption on a module that has grown a test) are RED.
 """
 import json
 import os
 import sys
+
+ARM_NAMES = ("test-dir", "matrix", "dependabot", "golangci", "exemptions")
 
 
 def refuse(msg):
@@ -38,6 +45,14 @@ def load_yaml(relpath):
     return data
 
 
+def str_list_or_refuse(value, what):
+    if not isinstance(value, list) or not value or not all(
+        isinstance(e, str) for e in value
+    ):
+        refuse(f"{what} is not a non-empty list of strings - malformed shape is not a pass")
+    return value
+
+
 # Populations ---------------------------------------------------------------
 mdir = os.path.join(ROOT, "modules")
 if not os.path.isdir(mdir):
@@ -53,18 +68,52 @@ testdirs = sorted(
 
 test_wf = load_yaml(".github/workflows/test.yml")
 try:
-    matrix = test_wf["jobs"]["terratest"]["strategy"]["matrix"]["project"]
+    terratest_job = test_wf["jobs"]["terratest"]
+    matrix = terratest_job["strategy"]["matrix"]["project"]
 except (KeyError, TypeError):
-    matrix = None
-if not matrix:
+    terratest_job, matrix = None, None
+if terratest_job is None or not matrix:
     refuse("test.yml: jobs.terratest.strategy.matrix.project missing or empty")
+matrix = str_list_or_refuse(matrix, "test.yml matrix.project")
+
+# Membership is not execution: a job-level `if:` or a paths-filtered trigger
+# empties per-PR coverage while every roster stays intact. Refuse rather than
+# silently pass the one drift shape the sets cannot see.
+if "if" in terratest_job:
+    refuse("test.yml: jobs.terratest carries an `if:` gate - roster membership no longer implies execution")
+try:
+    pr_trigger = test_wf.get(True) or test_wf.get("on") or {}
+    pr_block = pr_trigger.get("pull_request") or {}
+except AttributeError:
+    pr_block = {}
+if isinstance(pr_block, dict) and ("paths" in pr_block or "paths-ignore" in pr_block):
+    refuse("test.yml: on.pull_request is paths-filtered - roster membership no longer implies execution")
 
 dbot = load_yaml(".github/dependabot.yml")
 updates = dbot.get("updates")
 if not updates:
     refuse("dependabot.yml: updates missing or empty")
-tf_dirs = {u.get("directory") for u in updates if u.get("package-ecosystem") == "terraform"}
-go_dirs = {u.get("directory") for u in updates if u.get("package-ecosystem") == "gomod"}
+
+
+def entry_dirs(u):
+    """Both legal spellings: directory: str and directories: [str]."""
+    if "directory" in u:
+        d = u["directory"]
+        if not isinstance(d, str):
+            refuse(f"dependabot.yml: non-string directory in {u.get('package-ecosystem')} entry")
+        return [d]
+    if "directories" in u:
+        return str_list_or_refuse(u["directories"], "dependabot.yml directories")
+    refuse(f"dependabot.yml: {u.get('package-ecosystem')} entry has neither directory nor directories")
+
+
+tf_dirs, go_dirs = set(), set()
+for u in updates:
+    eco = u.get("package-ecosystem")
+    if eco == "terraform":
+        tf_dirs.update(entry_dirs(u))
+    elif eco == "gomod":
+        go_dirs.update(entry_dirs(u))
 if not tf_dirs or not go_dirs:
     refuse("dependabot.yml: terraform or gomod entry set is empty")
 
@@ -75,62 +124,77 @@ except (KeyError, TypeError, json.JSONDecodeError):
     workdirs = None
 if not workdirs:
     refuse("lint.yml: jobs.lint.with.golangci_workdirs missing/unparsable/empty")
+workdirs = str_list_or_refuse(workdirs, "lint.yml golangci_workdirs")
 
 expath = os.path.join(ROOT, ".github", "coverage-exemptions.txt")
 if not os.path.isfile(expath):
     refuse(".github/coverage-exemptions.txt missing - deleting the allowlist is not a way to pass")
-exempt = []
+exempt = {}  # module -> set of arms
 with open(expath) as f:
     for line in f:
         entry = line.split("#", 1)[0].strip()
-        if entry:
-            exempt.append(entry)
+        if not entry:
+            continue
+        module, _, arm = entry.partition(":")
+        arm = arm or "test-dir"
+        if arm not in ("test-dir", "matrix", "dependabot", "golangci"):
+            refuse(f"coverage-exemptions.txt: unknown arm '{arm}' in entry '{entry}'")
+        exempt.setdefault(module, set()).add(arm)
+
+
+def exempted(module, arm):
+    return arm in exempt.get(module, set())
+
 
 # Arms ----------------------------------------------------------------------
 want_test_entries = {f"modules/{m}/test" for m in testdirs}
-want_tf = {f"/modules/{m}" for m in modules}
-want_go = {f"/modules/{m}/test" for m in testdirs}
+want_tf = {f"/modules/{m}" for m in modules if not exempted(m, "dependabot")}
+want_go = {f"/modules/{m}/test" for m in testdirs if not exempted(m, "dependabot")}
 have_matrix = set(matrix)
 have_wd = set(workdirs)
+want_matrix = {f"modules/{m}/test" for m in testdirs if not exempted(m, "matrix")}
+want_wd = {f"modules/{m}/test" for m in testdirs if not exempted(m, "golangci")}
+
+stale = []
+for m, arms_set in sorted(exempt.items()):
+    if m not in modules:
+        stale.append(f"exemption '{m}' names a module that does not exist")
+    elif "test-dir" in arms_set and m in testdirs:
+        stale.append(f"exemption '{m}' is stale: the module has since grown a test dir")
 
 arms = {
     "test-dir": [
         f"modules/{m} has no test/ dir and no exemption"
         for m in modules
-        if m not in testdirs and m not in exempt
+        if m not in testdirs and not exempted(m, "test-dir")
     ],
     "matrix": (
         [f"{e} has a test dir but is missing from the test.yml matrix"
-         for e in sorted(want_test_entries - have_matrix)]
+         for e in sorted(want_matrix - have_matrix)]
         + [f"{e} is in the matrix but has no test dir on disk"
            for e in sorted(have_matrix - want_test_entries)]
     ),
     "dependabot": (
         [f"{d} has no terraform dependabot entry" for d in sorted(want_tf - tf_dirs)]
         + [f"{d} is in dependabot(terraform) but not on disk"
-           for d in sorted(tf_dirs - want_tf)]
+           for d in sorted(tf_dirs - {f'/modules/{m}' for m in modules})]
         + [f"{d} has no gomod dependabot entry" for d in sorted(want_go - go_dirs)]
         + [f"{d} is in dependabot(gomod) but not on disk"
-           for d in sorted(go_dirs - want_go)]
+           for d in sorted(go_dirs - {f'/modules/{m}/test' for m in testdirs})]
     ),
     "golangci": (
         [f"{e} has a test dir but is missing from golangci_workdirs"
-         for e in sorted(want_test_entries - have_wd)]
+         for e in sorted(want_wd - have_wd)]
         + [f"{e} is in golangci_workdirs but has no test dir on disk"
            for e in sorted(have_wd - want_test_entries)]
     ),
-    "exemptions": (
-        [f"exemption '{m}' names a module that does not exist"
-         for m in exempt if m not in modules]
-        + [f"exemption '{m}' is stale: the module has since grown a test dir"
-           for m in exempt if m in testdirs]
-    ),
+    "exemptions": stale,
 }
+assert set(arms) == set(ARM_NAMES), "arm roster drifted from ARM_NAMES"
 
 # Verdict -------------------------------------------------------------------
 red = False
-for name in ("test-dir", "matrix", "dependabot", "golangci", "exemptions"):
-    violations = arms[name]
+for name, violations in arms.items():
     if violations:
         red = True
         print(f"ARM {name}: RED")
@@ -141,7 +205,7 @@ for name in ("test-dir", "matrix", "dependabot", "golangci", "exemptions"):
 
 print(
     f"population: {len(modules)} modules, {len(testdirs)} test dirs, "
-    f"{len(exempt)} exemptions"
+    f"{sum(len(v) for v in exempt.values())} exemptions"
 )
 if red:
     print("COVERAGE TRUTH: RED")

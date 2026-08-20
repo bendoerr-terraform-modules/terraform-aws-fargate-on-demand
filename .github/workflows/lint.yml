@@ -1,6 +1,7 @@
 # Thin caller -> reusable lint in bendoerr-terraform-modules/workflows (SHA-pinned, big-blast).
-# golangci ON via the reusable's golangci_workdirs matrix: this repo is multi-module (6 modules,
-# each modules/<m>/test/go.mod), so golangci runs once per module dir (go_version_file derived
+# golangci ON via the reusable's golangci_workdirs matrix: this repo is multi-module (one entry
+# per modules/<m>/test/go.mod - .github/scripts/coverage-truth.py enforces the roster, so no count
+# lives in this comment), and golangci runs once per module dir (go_version_file derived
 # <workdir>/go.mod, fail-fast off). Each module carries its own test/.golangci.yml (org strict preset,
 # local-prefixes = this repo's umbrella path). terraform_docs stays OFF (baseline runs none; separate
 # drift-fix). Pins neither tflint/markdownlint knob -> empty (action defaults).
@@ -30,6 +31,28 @@ jobs:
       terraform_docs: false
       tflint_version: ""
       markdownlint_flags: ""
+  coverage-truth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Harden Runner"
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            github.com:443
+
+      - name: "Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Own job on purpose: riding another job's lifecycle means dying with it
+      # invisibly. This check's absence must be a missing REQUIRED name, not a
+      # silently shorter job. rc contract: 0 PASS / 1 RED / 2 NOT MEASURED.
+      - name: "Coverage truth"
+        run: python3 .github/scripts/coverage-truth.py
+
   paperwork:
     # Tripwire for repos born from the template: fails until the new-repo checklist
     # (top of README.md) is completed. Skipped in the template itself.
@@ -67,6 +90,3 @@ jobs:
             echo "::error::template self-references remain (badges/links/example role still point at the template) — see the new-repo checklist at the top of terraform-module-repo-template's README"; echo "$selfrefs"; fail=1
           fi
           exit $fail
-
-      - name: "Coverage truth"
-        run: python3 .github/scripts/coverage-truth.py
