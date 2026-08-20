@@ -16,28 +16,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
-
-// IAM reads are globally eventually consistent; a fresh client can NoSuchEntity
-// on a just-created role or policy. Retry the read a few times before treating
-// the error as real — a single flake here costs a full serialized-matrix rerun.
-func withRetry[T any](t *testing.T, what string, fn func() (T, error)) T {
-	t.Helper()
-	var out T
-	var err error
-	for attempt := range 5 {
-		out, err = fn()
-		if err == nil {
-			return out
-		}
-		t.Logf("%s attempt %d: %v (retrying)", what, attempt+1, err)
-		time.Sleep(3 * time.Second)
-	}
-	t.Fatalf("%s failed after retries: %v", what, err)
-	return out
-}
 
 // Exact key-set assertion (the efs-access lesson from #555): every output is
 // non-null here, so all five must be present — a typo'd or renamed output is a
@@ -126,10 +108,18 @@ func assertTaskDefinitionShape(t *testing.T, ctx context.Context, ecsClient *ecs
 // existence (existence is already implied by a successful apply).
 func assertIAMWiring(t *testing.T, ctx context.Context, iamClient *iam.Client, roleName, controlPolicyArn string) {
 	t.Helper()
-	role := withRetry(t, "iam.GetRole", func() (*iam.GetRoleOutput, error) {
-		return iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(roleName)})
-	})
-	doc, err := url.QueryUnescape(aws.ToString(role.Role.AssumeRolePolicyDocument))
+	// IAM reads are globally eventually consistent; a fresh client can
+	// NoSuchEntity on a just-created role or policy. Same retry budget as the
+	// dns-record sibling (10 x 5s) — a flake here costs a serialized-matrix rerun.
+	var role *iam.GetRoleOutput
+	if _, err := retry.DoWithRetryE(t, "iam.GetRole", 10, 5*time.Second, func() (string, error) {
+		var e error
+		role, e = iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(roleName)})
+		return "", e
+	}); err != nil {
+		t.Fatal(err)
+	}
+	doc, err := url.PathUnescape(aws.ToString(role.Role.AssumeRolePolicyDocument))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,16 +127,21 @@ func assertIAMWiring(t *testing.T, ctx context.Context, iamClient *iam.Client, r
 		t.Errorf("assume-role policy does not trust ecs-tasks.amazonaws.com: %s", doc)
 	}
 
-	pol := withRetry(t, "iam.GetPolicy", func() (*iam.GetPolicyOutput, error) {
-		return iamClient.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(controlPolicyArn)})
-	})
-	polVer := withRetry(t, "iam.GetPolicyVersion", func() (*iam.GetPolicyVersionOutput, error) {
-		return iamClient.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
+	var polVer *iam.GetPolicyVersionOutput
+	if _, err := retry.DoWithRetryE(t, "iam.GetPolicy+Version", 10, 5*time.Second, func() (string, error) {
+		pol, e := iamClient.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(controlPolicyArn)})
+		if e != nil {
+			return "", e
+		}
+		polVer, e = iamClient.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
 			PolicyArn: aws.String(controlPolicyArn),
 			VersionId: pol.Policy.DefaultVersionId,
 		})
-	})
-	polDoc, err := url.QueryUnescape(aws.ToString(polVer.PolicyVersion.Document))
+		return "", e
+	}); err != nil {
+		t.Fatal(err)
+	}
+	polDoc, err := url.PathUnescape(aws.ToString(polVer.PolicyVersion.Document))
 	if err != nil {
 		t.Fatal(err)
 	}
