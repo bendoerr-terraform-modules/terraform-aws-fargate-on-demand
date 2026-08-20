@@ -90,7 +90,7 @@ resource "aws_iam_role" "notice_role" {
 }
 
 module "label_notice_logs" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.1"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
   name    = "ntc-ssm-ps-logs"
 }
