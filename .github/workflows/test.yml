@@ -31,6 +31,7 @@ jobs:
           - modules/dns-record/test
           - modules/notice-github/test
           - modules/notice-parameter-store/test
+          - modules/efs-access/test
 
     steps:
       - name: "Harden Runner"
