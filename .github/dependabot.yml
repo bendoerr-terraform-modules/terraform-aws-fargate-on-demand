@@ -2,7 +2,9 @@
 version: 2
 updates:
   - package-ecosystem: "terraform"
-    directory: "/modules/persistence"
+    directories:
+      - "/modules/persistence"
+      - "/modules/persistence/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -17,7 +19,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/launcher"
+    directories:
+      - "/modules/launcher"
+      - "/modules/launcher/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -32,7 +36,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/notice-discord"
+    directories:
+      - "/modules/notice-discord"
+      - "/modules/notice-discord/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -47,7 +53,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/dns-record"
+    directories:
+      - "/modules/dns-record"
+      - "/modules/dns-record/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -62,7 +70,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/efs-access"
+    directories:
+      - "/modules/efs-access"
+      - "/modules/efs-access/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -77,7 +87,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/notice-github"
+    directories:
+      - "/modules/notice-github"
+      - "/modules/notice-github/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -92,7 +104,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/notice-parameter-store"
+    directories:
+      - "/modules/notice-parameter-store"
+      - "/modules/notice-parameter-store/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -107,7 +121,9 @@ updates:
       default-days: 14
 
   - package-ecosystem: "terraform"
-    directory: "/modules/service"
+    directories:
+      - "/modules/service"
+      - "/modules/service/examples/complete"
     schedule:
       interval: "weekly"
     groups:
