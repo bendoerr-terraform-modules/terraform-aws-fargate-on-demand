@@ -67,6 +67,13 @@ if not modules:
 testdirs = sorted(
     m for m in modules if os.path.isdir(os.path.join(mdir, m, "test"))
 )
+# Terratest applies against examples/complete, so an unwatched example pin is a
+# real coverage hole: CI's only live apply would exercise a dependency the module
+# under test no longer uses. Derived from disk, never hand-listed.
+exampledirs = sorted(
+    m for m in modules
+    if os.path.isdir(os.path.join(mdir, m, "examples", "complete"))
+)
 
 test_wf = load_yaml(".github/workflows/test.yml")
 try:
@@ -155,7 +162,19 @@ def exempted(module, arm):
 
 # Arms ----------------------------------------------------------------------
 want_test_entries = {f"modules/{m}/test" for m in testdirs}
-want_tf = {f"/modules/{m}" for m in modules if not exempted(m, "dependabot")}
+want_tf = (
+    {f"/modules/{m}" for m in modules if not exempted(m, "dependabot")}
+    | {f"/modules/{m}/examples/complete"
+       for m in exampledirs if not exempted(m, "dependabot")}
+)
+# What a terraform entry is ALLOWED to point at. Deliberately a roster check and
+# not a bare os.path.isdir: "/modules/x/test" is on disk and is still a terraform
+# misconfiguration. The existence guard on examples/complete keeps the disk half
+# real, so an entry naming a directory that is gone still REDs.
+allowed_tf = (
+    {f"/modules/{m}" for m in modules}
+    | {f"/modules/{m}/examples/complete" for m in exampledirs}
+)
 want_go = {f"/modules/{m}/test" for m in testdirs if not exempted(m, "dependabot")}
 have_matrix = set(matrix)
 have_wd = set(workdirs)
@@ -174,6 +193,8 @@ for m, arms_set in sorted(exempt.items()):
     if "golangci" in arms_set and f"modules/{m}/test" in have_wd:
         stale.append(f"exemption '{m}:golangci' is stale: the workdir entry exists")
     if "dependabot" in arms_set and f"/modules/{m}" in tf_dirs and (
+        m not in exampledirs or f"/modules/{m}/examples/complete" in tf_dirs
+    ) and (
         m not in testdirs or f"/modules/{m}/test" in go_dirs
     ):
         stale.append(f"exemption '{m}:dependabot' is stale: the dependabot entries exist")
@@ -192,8 +213,9 @@ arms = {
     ),
     "dependabot": (
         [f"{d} has no terraform dependabot entry" for d in sorted(want_tf - tf_dirs)]
-        + [f"{d} is in dependabot(terraform) but not on disk"
-           for d in sorted(tf_dirs - {f'/modules/{m}' for m in modules})]
+        + [f"{d} is in dependabot(terraform) but is neither a module root nor an "
+            f"examples/complete that exists on disk"
+           for d in sorted(tf_dirs - allowed_tf)]
         + [f"{d} has no gomod dependabot entry" for d in sorted(want_go - go_dirs)]
         + [f"{d} is in dependabot(gomod) but not on disk"
            for d in sorted(go_dirs - {f'/modules/{m}/test' for m in testdirs})]
@@ -222,6 +244,7 @@ for name, violations in arms.items():
 
 print(
     f"population: {len(modules)} modules, {len(testdirs)} test dirs, "
+    f"{len(exampledirs)} examples/complete, "
     f"{sum(len(v) for v in exempt.values())} exemptions"
 )
 if red:
