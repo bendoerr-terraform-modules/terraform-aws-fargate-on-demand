@@ -1,12 +1,12 @@
 module "label_network" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = module.context.shared
   name    = "ntwrk"
 }
 
 module "vpc" {
   source     = "terraform-aws-modules/vpc/aws"
-  version    = "5.1.1"
+  version    = "6.6.1"
   create_vpc = true
 
   name = module.label_network.id
