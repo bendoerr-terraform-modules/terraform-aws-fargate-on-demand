@@ -1,18 +1,18 @@
 module "label_cluster" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = module.context.shared
   name    = "ecs"
 }
 
 module "label_svc" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = module.context.shared
   name    = "svc"
 }
 
 module "ecs" {
   source       = "terraform-aws-modules/ecs/aws"
-  version      = "6.12.0"
+  version      = "7.5.0"
   cluster_name = module.label_cluster.id
   services = {
     (module.label_svc.id) = {
