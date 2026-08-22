@@ -191,7 +191,7 @@ resource "aws_vpc_security_group_egress_rule" "egress" {
 # idle (a stopped instance still bills its EBS volume).
 # ---------------------------------------------------------------------------
 # A public IP is required so the SSM agent can reach Systems Manager over the
-# existing internet gateway (this VPC runs NAT-free, matching the service module).
+# existing internet gateway (this VPC runs NAT-free).
 # With zero inbound rules and IMDSv2 enforced, SSM stays outbound-only, so the
 # public IP (required for SSM egress in this NAT-free VPC) is not an exposure.
 # trivy:ignore:AVD-AWS-0009
