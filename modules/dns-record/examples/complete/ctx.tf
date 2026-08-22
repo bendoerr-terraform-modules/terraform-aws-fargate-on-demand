@@ -22,7 +22,7 @@ variable "assume_principal" {
 }
 
 module "context" {
-  source      = "git@github.com:bendoerr-terraform-modules/terraform-null-context?ref=v0.4.0"
+  source      = "git@github.com:bendoerr-terraform-modules/terraform-null-context?ref=v0.5.2"
   namespace   = var.namespace
   environment = "example"
   role        = "dns-record"
@@ -31,7 +31,7 @@ module "context" {
 }
 
 module "label" {
-  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v0.4.0"
+  source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = module.context.shared
   name    = "test"
 }
