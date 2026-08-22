@@ -3,7 +3,7 @@ variable "namespace" {
 }
 
 module "context" {
-  source      = "git@github.com:bendoerr-terraform-modules/terraform-null-context?ref=v0.4.0"
+  source      = "git@github.com:bendoerr-terraform-modules/terraform-null-context?ref=v0.5.2"
   namespace   = var.namespace
   environment = "testing"
   role        = "development"
