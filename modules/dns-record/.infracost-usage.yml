@@ -1,7 +1,11 @@
 version: 0.1
 resource_usage:
   aws_route53_record.this:
-    # See ../launcher/.infracost-usage.yml for assumption
+    # Assumption, inlined rather than referenced, because it is the whole warrant
+    # for this number: one query per second, for half of an average month.
+    #   365/12 days = 2628000 s ; half = 1314000
+    # (Same "Not Quiet Worst but Bad" scenario as ../launcher/.infracost-usage.yml.
+    # That file is a cross-check, not the source of this figure.)
     monthly_standard_queries: 1314000
 
     # Monthly number of Latency Based Routing queries.
