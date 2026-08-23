@@ -2,7 +2,7 @@
 #
 # Assumptions:
 #   * Triggered every second for half the month
-#   * Seconds in a Month: 1314000
+#   * Seconds in half a Month: 1314000  (365/12 d = 2628000 s)
 #   * Log Retention: 3 days
 #   * Lambda Log Production per Execution: 0.5KiB
 #   * Average duration: 500ms
