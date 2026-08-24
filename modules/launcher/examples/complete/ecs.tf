@@ -12,7 +12,7 @@ module "label_svc" {
 
 module "ecs" {
   source       = "terraform-aws-modules/ecs/aws"
-  version      = "7.5.0"
+  version      = "7.6.0"
   cluster_name = module.label_cluster.id
   services = {
     (module.label_svc.id) = {
