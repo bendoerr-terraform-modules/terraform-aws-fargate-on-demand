@@ -112,14 +112,22 @@ jobs:
           # "no ~> caps" (those lines are neither baseline nor receipted) and makes the
           # convention executable instead of a rule that lives in a Discord scroll.
           # Only the stage that touches the FILESYSTEM can have an I/O ERROR; the filter stages
-          # read a variable and cannot.
-          # NARROWED DELIBERATELY: "cannot error" would be too broad. `grep -vE` still exits 2 on
-          # an INVALID PATTERN, and the trailing `|| true` would collapse that to bad="" -> a
-          # pass. It is unreachable HERE only because `root` is constrained to a three-part
-          # numeric by its own extraction regex. That is a property of THIS derivation, not of
-          # the shape - and this shape propagates to repos whose root= sites differ. Loosen the
-          # derivation and this stage needs the explicit case treatment the scan stage has. So the error space is preserved exactly where it exists,
+          # read a variable and cannot. So the error space is preserved exactly where it exists,
           # and `|| true` stays where it is genuinely safe.
+          # 🔴 THIS REPO IS THE EXCEPTION AND IT NEARLY SHIPPED A FAIL-OPEN. The canon derives its
+          # baseline into `$root`; THIS repo has no `root=` site and hardcodes ">= 1.3.0" (see the
+          # error message below). The block was spliced from canon BYTE-EXACT -- which is right for
+          # a self-contained script and WRONG for a block that references its host's variables --
+          # so it carried `${root//./\.}` into a workflow that never defines `root`. Under
+          # `set -euo pipefail` that is an UNBOUND VARIABLE, the command substitution dies, and the
+          # trailing `|| true` rescues the death into bad="" -> UNCONDITIONAL GREEN. Measured:
+          # `root: unbound variable` on stderr, 16 required_version lines found, verdict CLEAN,
+          # exit 0. Not silent -- green, with the diagnosis printed directly above it.
+          # The pattern is now a LITERAL here, so `grep -vE` cannot receive an invalid regex and
+          # the `|| true` is safe for a reason that is true IN THIS FILE rather than inherited from
+          # a sibling. (The canon's own justification -- "root is constrained by its extraction
+          # regex" -- was FALSE here, because there is no extraction: a propagated comment whose
+          # precondition did not survive the trip, standing confidently above the fault it excused.)
           # WHY NOT A SINGLE PIPELINE WITH AN rc CHECK: under `pipefail` the status is the
           # RIGHTMOST non-zero, so a first-stage `grep -rn` error (2) followed by a legitimate
           # last-stage `grep -v` no-match (1) reports 1 - the error masked by a downstream clean.
@@ -134,7 +142,7 @@ jobs:
               exit 1
               ;;
           esac
-          bad=$(printf '%s\n' "$all" | grep -vE "required_version += +\">= ${root//./\\.}\"" | grep -v 'floor-reason:') || true
+          bad=$(printf '%s\n' "$all" | grep -vE 'required_version += +">= 1\.3\.0"' | grep -v 'floor-reason:') || true
           if [ -n "$bad" ]; then
             echo "::error::each required_version must be '>= 1.3.0' (baseline) or carry a '# floor-reason:' receipt"
             echo "$bad"
