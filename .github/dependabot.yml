@@ -1,10 +1,31 @@
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+#
+# ONE entry per ecosystem, covering every module by glob.
+#
+# It used to be one entry PER MODULE — 17 entries, up to 17 PRs a week. That interacts badly
+# with this repo's test lane: `test.yml` runs terratest under `concurrency: sandbox-test`
+# with `cancel-in-progress: false`, because the suite drives ONE shared AWS sandbox account
+# and cannot safely run twice at once. A full terratest takes ~70 minutes, so the lane lands
+# at most one PR per 70 minutes, and only ONE queued run survives per wave — every other
+# pending run is superseded and reports `cancelled`, which is not a red check, it is an
+# ABSENT one.
+#
+# Measured 2026-09-07: dependabot opened 12 PRs in this repo at once. Ten finished with
+# terratest `cancelled` and could not merge; #609-#612 were the SAME bump
+# (terraform-aws-modules/vpc 6.6.1 -> 6.7.0) split across four directories, each demanding
+# its own 70-minute run. Serially that backlog is ~11 hours of sandbox time to land four
+# copies of one version bump.
+#
+# Globs rather than a directory list on purpose: a new module under /modules is picked up
+# automatically. The previous per-module form had to be edited by hand for every new module,
+# which is a step that gets forgotten silently — the module simply stops receiving updates
+# and nothing reports it.
 version: 2
 updates:
   - package-ecosystem: "terraform"
     directories:
-      - "/modules/persistence"
-      - "/modules/persistence/examples/complete"
+      - "/modules/*"
+      - "/modules/*/examples/complete"
     schedule:
       interval: "weekly"
     groups:
@@ -18,232 +39,9 @@ updates:
     cooldown:
       default-days: 14
 
-  - package-ecosystem: "terraform"
+  - package-ecosystem: "gomod"
     directories:
-      - "/modules/launcher"
-      - "/modules/launcher/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/notice-discord"
-      - "/modules/notice-discord/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/dns-record"
-      - "/modules/dns-record/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/efs-access"
-      - "/modules/efs-access/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/notice-github"
-      - "/modules/notice-github/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/notice-parameter-store"
-      - "/modules/notice-parameter-store/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/service"
-      - "/modules/service/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/persistence/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/launcher/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/notice-discord/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/dns-record/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/notice-github/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/notice-parameter-store/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/efs-access/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/service/test"
+      - "/modules/*/test"
     schedule:
       interval: "weekly"
     groups:
