@@ -1,127 +1,46 @@
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+#
+# ONE entry per ecosystem. It used to be one entry PER MODULE — 17 entries, up to 17 PRs a
+# week — and that interacts badly with this repo's test lane: `test.yml` runs terratest under
+# `concurrency: sandbox-test` with `cancel-in-progress: false`, because the suite drives ONE
+# shared AWS sandbox account and cannot safely run twice at once. A full run takes ~70
+# minutes, so the lane lands at most one PR per 70 minutes, and only ONE queued run survives
+# per wave — every other pending run is superseded and reports `cancelled`, which is not a red
+# check, it is an ABSENT one.
+#
+# Measured 2026-09-07: dependabot opened 12 PRs at once. Ten ended with terratest `cancelled`
+# and could not merge; #609-#612 were the SAME bump (terraform-aws-modules/vpc 6.6.1 -> 6.7.0)
+# split across four directories, each demanding its own 70-minute run.
+#
+# Directories are listed EXPLICITLY rather than globbed, deliberately. A glob would cover new
+# modules automatically, but `.github/scripts/coverage-truth.py` compares this file's declared
+# directories against the module population by literal path, and a glob is opaque to it — the
+# arm would go structurally green and stop being able to fail. That guard is what makes a new
+# module without dependabot coverage LOUD, so the explicit list keeps its teeth and the cost is
+# one hand-edit per new module, which the guard itself reds on if forgotten.
+#
+# Each ecosystem carries a SECOND group with `applies-to: security-updates`: groups default to
+# `applies-to: version-updates`, so without it a CVE in a dependency shared by all eight test
+# directories would open eight PRs and recreate the wave above in the same 70-minute lane —
+# at the exact moment speed matters most.
 version: 2
 updates:
   - package-ecosystem: "terraform"
     directories:
-      - "/modules/persistence"
-      - "/modules/persistence/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/launcher"
-      - "/modules/launcher/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/notice-discord"
-      - "/modules/notice-discord/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
       - "/modules/dns-record"
       - "/modules/dns-record/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
       - "/modules/efs-access"
       - "/modules/efs-access/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
+      - "/modules/launcher"
+      - "/modules/launcher/examples/complete"
+      - "/modules/notice-discord"
+      - "/modules/notice-discord/examples/complete"
       - "/modules/notice-github"
       - "/modules/notice-github/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
       - "/modules/notice-parameter-store"
       - "/modules/notice-parameter-store/examples/complete"
-    schedule:
-      interval: "weekly"
-    groups:
-      terraform:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-tf):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "terraform"
-    directories:
+      - "/modules/persistence"
+      - "/modules/persistence/examples/complete"
       - "/modules/service"
       - "/modules/service/examples/complete"
     schedule:
@@ -132,13 +51,25 @@ updates:
           - "major"
           - "minor"
           - "patch"
+      terraform-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     commit-message:
       prefix: "⬆️ (deps-tf):"
     cooldown:
       default-days: 14
 
   - package-ecosystem: "gomod"
-    directory: "/modules/persistence/test"
+    directories:
+      - "/modules/dns-record/test"
+      - "/modules/efs-access/test"
+      - "/modules/launcher/test"
+      - "/modules/notice-discord/test"
+      - "/modules/notice-github/test"
+      - "/modules/notice-parameter-store/test"
+      - "/modules/persistence/test"
+      - "/modules/service/test"
     schedule:
       interval: "weekly"
     groups:
@@ -147,111 +78,10 @@ updates:
           - "major"
           - "minor"
           - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/launcher/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/notice-discord/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/dns-record/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/notice-github/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/notice-parameter-store/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/efs-access/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "⬆️ (deps-test):"
-    cooldown:
-      default-days: 14
-
-  - package-ecosystem: "gomod"
-    directory: "/modules/service/test"
-    schedule:
-      interval: "weekly"
-    groups:
-      test:
-        update-types:
-          - "major"
-          - "minor"
-          - "patch"
+      test-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     commit-message:
       prefix: "⬆️ (deps-test):"
     cooldown:
@@ -267,6 +97,10 @@ updates:
           - "major"
           - "minor"
           - "patch"
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     commit-message:
       prefix: "⬆️ (deps-ghaction):"
     cooldown:
