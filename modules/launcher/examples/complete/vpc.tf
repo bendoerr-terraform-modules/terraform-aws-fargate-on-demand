@@ -6,7 +6,7 @@ module "label_network" {
 
 module "vpc" {
   source     = "terraform-aws-modules/vpc/aws"
-  version    = "6.7.0"
+  version    = "6.7.2"
   create_vpc = true
 
   name = module.label_network.id
