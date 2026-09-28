@@ -2,6 +2,7 @@ package test_test
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"reflect"
 	"sort"
@@ -314,19 +315,31 @@ func assertTopicUnencrypted(ctx context.Context, t *testing.T, snsClient *sns.Cl
 // (default 12, unset by the example).
 func assertMaxRuntimeAlarm(ctx context.Context, t *testing.T, cwClient *cloudwatch.Client, cluster, service, wantAlarmTopicArn string) {
 	t.Helper()
-	out, err := cwClient.DescribeAlarmsForMetric(ctx, &cloudwatch.DescribeAlarmsForMetricInput{
-		Namespace:  aws.String("AWS/ECS"),
-		MetricName: aws.String("CPUUtilization"),
-		Dimensions: []cwtypes.Dimension{
-			{Name: aws.String("ClusterName"), Value: aws.String(cluster)},
-			{Name: aws.String("ServiceName"), Value: aws.String(service)},
-		},
-	})
-	if err != nil {
+
+	// CloudWatch alarm creation, like IAM, can lag a just-completed apply —
+	// a fresh read can transiently see 0 alarms. Same retry budget as
+	// assertIAMWiring (10 x 5s) so a flake here doesn't masquerade as a
+	// regression.
+	var out *cloudwatch.DescribeAlarmsForMetricOutput
+	if _, err := retry.DoWithRetryContextE(t, ctx, "cloudwatch.DescribeAlarmsForMetric", 10, 5*time.Second, func() (string, error) {
+		var e error
+		out, e = cwClient.DescribeAlarmsForMetric(ctx, &cloudwatch.DescribeAlarmsForMetricInput{
+			Namespace:  aws.String("AWS/ECS"),
+			MetricName: aws.String("CPUUtilization"),
+			Dimensions: []cwtypes.Dimension{
+				{Name: aws.String("ClusterName"), Value: aws.String(cluster)},
+				{Name: aws.String("ServiceName"), Value: aws.String(service)},
+			},
+		})
+		if e != nil {
+			return "", e
+		}
+		if len(out.MetricAlarms) != 1 {
+			return "", fmt.Errorf("expected exactly 1 max-runtime alarm for %s/%s, got %d", cluster, service, len(out.MetricAlarms))
+		}
+		return "", nil
+	}); err != nil {
 		t.Fatal(err)
-	}
-	if len(out.MetricAlarms) != 1 {
-		t.Fatalf("expected exactly 1 max-runtime alarm for %s/%s, got %d", cluster, service, len(out.MetricAlarms))
 	}
 	alarm := out.MetricAlarms[0]
 
