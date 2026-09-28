@@ -63,7 +63,7 @@ variable "lambda_timeout" {
 
 variable "lambda_python_runtime" {
   type        = string
-  default     = "python3.11"
+  default     = "python3.13"
   description = "Overwrite the AWS Lambda python runtime"
   nullable    = false
 

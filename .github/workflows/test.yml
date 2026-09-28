@@ -141,3 +141,29 @@ jobs:
         if: always() && hashFiles(format('{0}/results.xml', matrix.project)) != ''
         with:
           paths: ${{ matrix.project }}/results.xml
+
+  launcher-python-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: "Harden Runner"
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:22
+            github.com:443
+
+      - name: "Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: "Setup Python"
+        uses: actions/setup-python@abc1286fb12d9d60f1b2fef89b905a6fd5f5202f # v5.2.0
+        with:
+          python-version: '3.x'
+
+      - name: "Run Launcher Python Tests"
+        shell: bash
+        run: python3 -m unittest discover -s modules/launcher/test -p 'test_*.py' -v
