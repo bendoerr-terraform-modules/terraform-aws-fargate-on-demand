@@ -47,6 +47,19 @@ data "aws_iam_policy_document" "ecs_control" {
       values   = [var.context.region]
     }
   }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecs:ListTasks"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "ArnEquals"
+      variable = "ecs:cluster"
+      values   = [aws_ecs_cluster.svc.arn]
+    }
+  }
 }
 
 resource "aws_iam_policy" "ecs_control" {
