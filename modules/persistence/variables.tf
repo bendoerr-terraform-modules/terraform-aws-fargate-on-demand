@@ -45,3 +45,40 @@ variable "kms_efs_arn" {
   default     = null
   description = "ARN of the KMS key to use for encrypting the EFS volume. Default aws/elasticfilesystem will be used instead."
 }
+
+variable "throughput_mode" {
+  type        = string
+  default     = "elastic"
+  nullable    = false
+  description = "Throughput mode for the EFS file system. One of bursting, provisioned, elastic. Changes apply in place to the existing file system."
+
+  validation {
+    condition     = contains(["bursting", "provisioned", "elastic"], var.throughput_mode)
+    error_message = "throughput_mode must be one of: bursting, provisioned, elastic."
+  }
+}
+
+variable "backup_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Whether to create AWS Backup resources (vault, plan, IAM role, selection) protecting the EFS file system. When false, none of those resources are created and backup_vault_arn/backup_plan_id are null."
+}
+
+variable "backup_retention_days" {
+  type        = number
+  default     = 14
+  nullable    = false
+  description = "Number of days to retain recovery points created by the backup plan's daily rule (delete_after). Ignored when backup_enabled is false."
+
+  validation {
+    condition     = var.backup_retention_days >= 1
+    error_message = "backup_retention_days must be at least 1."
+  }
+}
+
+variable "backup_kms_key_arn" {
+  type        = string
+  default     = null
+  description = "KMS key ARN for the AWS Backup vault. Default null uses the AWS-managed aws/backup key. Ignored when backup_enabled is false."
+}
