@@ -11,11 +11,13 @@ on-demand workload.
   `30000`) for connection activity and reports state on the notifications SNS topic.
 - `"minecraft"` runs the Minecraft-aware custodian. The app container gets
   `dependsOn = [{ containerName = <sidecar>, condition = "HEALTHY" }]`, so it does not start until
-  the sidecar's own health check passes; both the sidecar's health check `startPeriod` and its
-  `startTimeout`/`stopTimeout` are set to their Fargate-allowed maximum of 120s. The sidecar is
-  configured entirely through `CUSTODIAN_*` environment variables (cluster, service, DNS zone/record,
-  the notifications topic, and `idle_seconds` as `CUSTODIAN_IDLE_TIMEOUT`); set `custodian.environment`
-  to override any of these or add your own.
+  the sidecar's own health check passes; the sidecar's health check `startPeriod` is 240s (Fargate's
+  allowed maximum is 300s), while its container `startTimeout`/`stopTimeout` are 120s (their own
+  Fargate-allowed maximum). The custodian's own gate timeout (`CUSTODIAN_GATE_TIMEOUT`, capped at 4
+  minutes by the custodian itself) must stay inside that 240s health-check start period. The sidecar
+  is configured entirely through `CUSTODIAN_*` environment variables (cluster, service, DNS
+  zone/record, the notifications topic, and `idle_seconds` as `CUSTODIAN_IDLE_TIMEOUT`); set
+  `custodian.environment` to override any of these or add your own.
 
 `custodian.image` overrides the module's pinned default image for the selected kind — leave it unset
 to use the version this module release ships with.
