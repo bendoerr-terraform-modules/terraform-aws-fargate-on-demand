@@ -1,7 +1,6 @@
 locals {
   # Default sidecar images, keyed by custodian.kind. Used when custodian.image
-  # is null. The "minecraft" entry is data only (spec §4.1); its container
-  # wiring is a later step's job (see watchdog_container_definitions below).
+  # is null.
   custodian_default_images = {
     tcp       = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-custodian:0.1.3"
     minecraft = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-minecraft-custodian:v0.1.0"
@@ -16,35 +15,68 @@ locals {
     for name, value in var.custodian.environment : { name = name, value = value }
   ]
 
-  service_container_definition = {
-    name         = module.label.id
-    tags         = module.label.tags
-    image        = var.service_image
-    portMappings = var.port_mappings != null ? var.port_mappings : []
-    environment  = var.environment_variables != null ? var.environment_variables : []
-    secrets      = var.secret_variables != null ? var.secret_variables : []
+  # "minecraft" kind sidecar env (spec §4.2): built-ins merged with
+  # custodian.environment (later wins), then converted below to the
+  # name/value list. Terraform's for-over-map always iterates in sorted key
+  # order, so the resulting list order is stable across plans regardless of
+  # map insertion order.
+  custodian_minecraft_environment = merge(
+    {
+      CUSTODIAN_CLUSTER       = aws_ecs_cluster.svc.name
+      CUSTODIAN_SERVICE       = module.label.id
+      CUSTODIAN_DNS_ZONE_ID   = var.dns_zone_id
+      CUSTODIAN_DNS_RECORD    = var.dns_record
+      CUSTODIAN_SNS_TOPIC_ARN = aws_sns_topic.notifications.arn
+      CUSTODIAN_IDLE_TIMEOUT  = "${var.idle_seconds}s"
+    },
+    var.custodian.environment
+  )
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-region"        = var.context.region
-        "awslogs-group"         = aws_cloudwatch_log_group.svc.name
-        "awslogs-stream-prefix" = module.label.name
+  service_container_definition = merge(
+    {
+      name         = module.label.id
+      tags         = module.label.tags
+      image        = var.service_image
+      portMappings = var.port_mappings != null ? var.port_mappings : []
+      environment  = var.environment_variables != null ? var.environment_variables : []
+      secrets      = var.secret_variables != null ? var.secret_variables : []
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-region"        = var.context.region
+          "awslogs-group"         = aws_cloudwatch_log_group.svc.name
+          "awslogs-stream-prefix" = module.label.name
+        }
       }
+
+      mountPoints = [
+        {
+          containerPath = var.data_mount_path
+          sourceVolume  = module.label_data.id,
+          readOnly      = false,
+        }
+      ]
+    },
+    # Only the "minecraft" kind's app container waits on the sidecar and
+    # gets extra shutdown time (spec §4.2); "tcp" stays byte-identical to
+    # today. The for/if filter (rather than a ternary) avoids Terraform
+    # having to unify an empty object's type with this one's, and yields no
+    # keys at all (not null-valued keys) when the condition is false.
+    {
+      for k, v in {
+        dependsOn = [
+          {
+            containerName = module.label_wd.id
+            condition     = "HEALTHY"
+          }
+        ]
+        stopTimeout = 120
+      } : k => v if var.custodian.kind == "minecraft"
     }
-
-    mountPoints = [
-      {
-        containerPath = var.data_mount_path
-        sourceVolume  = module.label_data.id,
-        readOnly      = false,
-      }
-    ]
-  }
+  )
 
   # Per-kind sidecar container definitions, chosen by custodian.kind below.
-  # Only "tcp" is implemented here; a later step adds "minecraft" (health
-  # check, dependsOn on the app container, timeouts per spec §4.2).
   watchdog_container_definitions = {
     tcp = {
       name  = module.label_wd.id
@@ -74,6 +106,32 @@ locals {
         ],
         local.custodian_environment_overrides
       )
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-region"        = var.context.region
+          "awslogs-group"         = aws_cloudwatch_log_group.svc.name
+          "awslogs-stream-prefix" = module.label_wd.name
+        }
+      }
+    }
+
+    minecraft = {
+      name      = module.label_wd.id
+      image     = local.custodian_image
+      essential = true
+      environment = [
+        for name, value in local.custodian_minecraft_environment : { name = name, value = value }
+      ]
+      healthCheck = {
+        command     = ["CMD", "/custodian", "healthcheck"]
+        interval    = 5
+        timeout     = 2
+        startPeriod = 240
+        retries     = 3
+      }
+      startTimeout = 120
+      stopTimeout  = 120
       logConfiguration = {
         logDriver = "awslogs"
         options = {
