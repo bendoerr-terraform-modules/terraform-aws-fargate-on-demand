@@ -259,6 +259,13 @@ variable "logs_kms_key_id" {
   }
 }
 
+variable "alarm_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Whether to create the cost alarm's SNS topic (and its policy/subscriptions) and the CloudWatch max-runtime alarm itself. When false, none of those resources are created and alarm_topic_arn is null."
+}
+
 variable "max_runtime_hours" {
   type        = number
   default     = 12
