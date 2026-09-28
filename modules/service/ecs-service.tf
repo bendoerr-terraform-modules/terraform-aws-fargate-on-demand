@@ -9,8 +9,11 @@ resource "aws_ecs_service" "svc" {
   platform_version = "LATEST"
   propagate_tags   = "SERVICE"
 
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
+
   capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
+    capacity_provider = var.capacity_provider
     weight            = 1
     base              = 1
   }

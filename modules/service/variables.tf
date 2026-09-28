@@ -138,6 +138,52 @@ variable "service_image" {
   default = ""
 }
 
+variable "custodian" {
+  type = object({
+    kind        = optional(string, "tcp")
+    image       = optional(string)
+    tcp_port    = optional(number, 30000)
+    environment = optional(map(string), {})
+  })
+  default     = {}
+  nullable    = false
+  description = "Watchdog sidecar configuration. kind selects the custodian flavor: \"tcp\" (default, today's watchdog) or \"minecraft\". image overrides the module's pinned default image for the selected kind. tcp_port sets WATCH_TCP for kind = \"tcp\" (default 30000, today's hard-coded value). environment entries are appended to the sidecar's environment, so a name that collides with a built-in entry overrides it."
+
+  validation {
+    condition     = contains(["tcp", "minecraft"], var.custodian.kind)
+    error_message = "custodian.kind must be one of: tcp, minecraft."
+  }
+
+  validation {
+    condition     = var.custodian.tcp_port >= 1 && var.custodian.tcp_port <= 65535
+    error_message = "custodian.tcp_port must be between 1 and 65535."
+  }
+}
+
+variable "cpu_architecture" {
+  type        = string
+  default     = "X86_64"
+  nullable    = false
+  description = "CPU architecture for the Fargate task's runtime platform. One of X86_64, ARM64."
+
+  validation {
+    condition     = contains(["X86_64", "ARM64"], var.cpu_architecture)
+    error_message = "cpu_architecture must be one of: X86_64, ARM64."
+  }
+}
+
+variable "capacity_provider" {
+  type        = string
+  default     = "FARGATE_SPOT"
+  nullable    = false
+  description = "Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE."
+
+  validation {
+    condition     = contains(["FARGATE_SPOT", "FARGATE"], var.capacity_provider)
+    error_message = "capacity_provider must be one of: FARGATE_SPOT, FARGATE."
+  }
+}
+
 variable "dns_zone_id" {
   type        = string
   description = ""
