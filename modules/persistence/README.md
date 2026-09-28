@@ -79,7 +79,7 @@ delete-recovery-point`), otherwise the vault deletion (and the destroy) will fai
 | <a name="input_owner_gid"></a> [owner_gid](#input_owner_gid) | TODO | `number` | `1000` | no |
 | <a name="input_owner_uid"></a> [owner_uid](#input_owner_uid) | TODO | `number` | `1000` | no |
 | <a name="input_subnet_ids"></a> [subnet_ids](#input_subnet_ids) | The subnet IDs to expose NFS mount targets. | `list(string)` | `[]` | no |
-| <a name="input_throughput_mode"></a> [throughput_mode](#input_throughput_mode) | Throughput mode for the EFS file system. One of bursting, provisioned, elastic. Changes apply in place to the existing file system. | `string` | `"elastic"` | no |
+| <a name="input_throughput_mode"></a> [throughput_mode](#input_throughput_mode) | Throughput mode for the EFS file system. One of bursting, elastic. Changes apply in place to the existing file system. | `string` | `"elastic"` | no |
 
 ### Outputs
 

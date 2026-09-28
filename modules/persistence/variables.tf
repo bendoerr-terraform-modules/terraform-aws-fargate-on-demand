@@ -50,11 +50,11 @@ variable "throughput_mode" {
   type        = string
   default     = "elastic"
   nullable    = false
-  description = "Throughput mode for the EFS file system. One of bursting, provisioned, elastic. Changes apply in place to the existing file system."
+  description = "Throughput mode for the EFS file system. One of bursting, elastic. Changes apply in place to the existing file system."
 
   validation {
-    condition     = contains(["bursting", "provisioned", "elastic"], var.throughput_mode)
-    error_message = "throughput_mode must be one of: bursting, provisioned, elastic."
+    condition     = contains(["bursting", "elastic"], var.throughput_mode)
+    error_message = "throughput_mode must be one of: bursting, elastic."
   }
 }
 
