@@ -149,8 +149,10 @@ func splitContainers(t *testing.T, td *types.TaskDefinition) (app, sidecar *type
 
 // kind = "tcp" sidecar (spec §6.1.1 / §4.2): the pinned 0.1.3 image,
 // WATCH_TCP = 30000 (the example doesn't override custodian.tcp_port), no
-// health check, and the app container carries no dependsOn (that's a
-// "minecraft"-only addition).
+// health check, the app container carries no dependsOn (that's a
+// "minecraft"-only addition) and no stopTimeout (also minecraft-only), and
+// the task definition's runtimePlatform.cpuArchitecture is X86_64 (the
+// module's default, unchanged from today for the tcp example).
 func assertTcpTaskDefinitionShape(t *testing.T, td *types.TaskDefinition) {
 	t.Helper()
 	app, sidecar := splitContainers(t, td)
@@ -166,6 +168,12 @@ func assertTcpTaskDefinitionShape(t *testing.T, td *types.TaskDefinition) {
 	}
 	if len(app.DependsOn) != 0 {
 		t.Errorf("tcp app container should carry no dependsOn, got %+v", app.DependsOn)
+	}
+	if app.StopTimeout != nil {
+		t.Errorf("tcp app container should carry no stopTimeout, got %v", aws.ToInt32(app.StopTimeout))
+	}
+	if td.RuntimePlatform == nil || td.RuntimePlatform.CpuArchitecture != types.CPUArchitectureX8664 {
+		t.Errorf("tcp task definition runtimePlatform.cpuArchitecture should be X86_64, got %+v", td.RuntimePlatform)
 	}
 }
 
@@ -191,6 +199,7 @@ func assertMinecraftTaskDefinitionShape(t *testing.T, td *types.TaskDefinition, 
 		"CUSTODIAN_DNS_RECORD":    wantDNSRecord,
 		"CUSTODIAN_SNS_TOPIC_ARN": wantSNSTopicArn,
 		"CUSTODIAN_IDLE_TIMEOUT":  "600s", // "${var.idle_seconds}s"; the example doesn't override idle_seconds (default "600").
+		"CUSTODIAN_GATE_TIMEOUT":  "110s", // built-in default; expires before ECS's 120s startTimeout on the HEALTHY dependency.
 	}
 	gotEnv := envMap(sidecar.Environment)
 	for name, want := range wantEnv {
@@ -305,6 +314,24 @@ func assertTopicUnencrypted(ctx context.Context, t *testing.T, snsClient *sns.Cl
 	}
 	if kms := attrs.Attributes["KmsMasterKeyId"]; kms != "" {
 		t.Errorf("events topic should have no KMS key with sns_kms_key_id=null, got %q", kms)
+	}
+}
+
+// The alarms topic policy (modules/service/alarm.tf) allows
+// cloudwatch.amazonaws.com to SNS:Publish; without that statement,
+// CloudWatch's publish to the alarm topic is denied and
+// alarm_email_endpoints subscribers are never notified.
+func assertAlarmTopicAllowsCloudWatchPublish(ctx context.Context, t *testing.T, snsClient *sns.Client, topicArn string) {
+	t.Helper()
+	attrs, err := snsClient.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
+		TopicArn: aws.String(topicArn),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := attrs.Attributes["Policy"]
+	if !strings.Contains(policy, "cloudwatch.amazonaws.com") || !strings.Contains(policy, "SNS:Publish") {
+		t.Errorf("alarms topic policy should allow cloudwatch.amazonaws.com SNS:Publish, got %s", policy)
 	}
 }
 
@@ -425,6 +452,7 @@ func TestServiceParkedAtZero(t *testing.T) {
 	assertIAMWiring(ctx, t, iamClient, ecsClient, vals["service_role_name"], vals["svc_control_policy_arn"], vals["ecs_cluster_name"])
 	assertTopicUnencrypted(ctx, t, snsClient, vals["events_topic_arn"])
 	assertMaxRuntimeAlarm(ctx, t, cwClient, vals["ecs_cluster_name"], vals["ecs_service_name"], vals["alarm_topic_arn"])
+	assertAlarmTopicAllowsCloudWatchPublish(ctx, t, snsClient, vals["alarm_topic_arn"])
 
 	// kind = "minecraft", ARM64, FARGATE (the example's overrides).
 	mcTaskDefArn := assertServiceParked(ctx, t, ecsClient, vals["mc_ecs_cluster_name"], vals["mc_ecs_service_name"], "FARGATE")
@@ -436,4 +464,5 @@ func TestServiceParkedAtZero(t *testing.T) {
 	assertIAMWiring(ctx, t, iamClient, ecsClient, vals["mc_service_role_name"], vals["mc_svc_control_policy_arn"], vals["mc_ecs_cluster_name"])
 	assertTopicUnencrypted(ctx, t, snsClient, vals["mc_events_topic_arn"])
 	assertMaxRuntimeAlarm(ctx, t, cwClient, vals["mc_ecs_cluster_name"], vals["mc_ecs_service_name"], vals["mc_alarm_topic_arn"])
+	assertAlarmTopicAllowsCloudWatchPublish(ctx, t, snsClient, vals["mc_alarm_topic_arn"])
 }
