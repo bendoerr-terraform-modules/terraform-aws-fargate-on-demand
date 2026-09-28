@@ -72,6 +72,11 @@ variable "backup_retention_days" {
   description = "Number of days to retain recovery points created by the backup plan's daily rule (delete_after). Ignored when backup_enabled is false."
 
   validation {
+    condition     = floor(var.backup_retention_days) == var.backup_retention_days
+    error_message = "backup_retention_days must be a whole number (no fractional days)."
+  }
+
+  validation {
     condition     = var.backup_retention_days >= 1
     error_message = "backup_retention_days must be at least 1."
   }
