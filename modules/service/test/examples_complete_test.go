@@ -31,10 +31,26 @@ const (
 	minecraftCustodianImage = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-minecraft-custodian:v0.1.0"
 )
 
+// Terratest-compatible note: this file's TestServiceParkedAtZero only
+// exercises the var.alarm_enabled default (true, so alarm_topic_arn stays
+// non-null and the alarms topic/policy/alarm all exist), which is what
+// outputStrings' exact key-set check above already forces via the example's
+// declared outputs. It does not apply a second example with
+// alarm_enabled = false; that path (no alarms topic, no policy, no
+// subscriptions, no alarm, alarm_topic_arn absent from outputs) is a
+// same-shape addition to this suite, mirroring
+// modules/persistence/test/examples_complete_test.go's TestBackupDisabled,
+// and was instead verified for this change via `terraform plan`/`terraform
+// console` (see the fix-pass report) rather than a live AWS apply here.
+
 // Exact key-set assertion (the efs-access lesson from #555): every output is
 // non-null here, so all keys must be present — a typo'd or renamed output is a
 // red, not a silently-absent key.
-func outputStrings(t *testing.T, outputs map[string]interface{}, wantKeys []string) map[string]string {
+func outputStrings(
+	t *testing.T,
+	outputs map[string]interface{},
+	wantKeys []string,
+) map[string]string {
 	t.Helper()
 	sort.Strings(wantKeys)
 	gotKeys := make([]string, 0, len(outputs))
@@ -81,7 +97,10 @@ func assertServiceParked(
 		t.Errorf("service status should be ACTIVE, got %q", aws.ToString(svc.Status))
 	}
 	if svc.DesiredCount != 0 {
-		t.Errorf("desired count should be 0 (scale-to-zero is the native state), got %d", svc.DesiredCount)
+		t.Errorf(
+			"desired count should be 0 (scale-to-zero is the native state), got %d",
+			svc.DesiredCount,
+		)
 	}
 
 	// spec §4.3.1: deployment_maximum_percent = 100, deployment_minimum_healthy_percent = 0
@@ -146,10 +165,16 @@ func envMap(env []types.KeyValuePair) map[string]string {
 // container is identified by the example's alpine image, the watchdog is
 // whichever container is left. Fails the test (fatal) if that shape doesn't
 // hold, since every other assertion in this file depends on it.
-func splitContainers(t *testing.T, td *types.TaskDefinition) (*types.ContainerDefinition, *types.ContainerDefinition) {
+func splitContainers(
+	t *testing.T,
+	td *types.TaskDefinition,
+) (*types.ContainerDefinition, *types.ContainerDefinition) {
 	t.Helper()
 	if len(td.ContainerDefinitions) != 2 {
-		t.Fatalf("task definition should carry 2 containers (service + watchdog), got %d", len(td.ContainerDefinitions))
+		t.Fatalf(
+			"task definition should carry 2 containers (service + watchdog), got %d",
+			len(td.ContainerDefinitions),
+		)
 	}
 	var app, sidecar *types.ContainerDefinition
 	for i := range td.ContainerDefinitions {
@@ -161,9 +186,30 @@ func splitContainers(t *testing.T, td *types.TaskDefinition) (*types.ContainerDe
 		}
 	}
 	if app == nil || sidecar == nil {
-		t.Fatalf("could not identify app/watchdog containers by image: %+v", td.ContainerDefinitions)
+		t.Fatalf(
+			"could not identify app/watchdog containers by image: %+v",
+			td.ContainerDefinitions,
+		)
 	}
 	return app, sidecar
+}
+
+// assertExactEnvNames fails if gotEnv's key set is not exactly wantNames: a
+// missing built-in or an unexpected extra variable (e.g. a leaked default, or
+// custodian.environment failing to override in place instead of appending)
+// is a red, not a silently-ignored subset match.
+func assertExactEnvNames(t *testing.T, kind string, gotEnv map[string]string, wantNames []string) {
+	t.Helper()
+	want := append([]string(nil), wantNames...)
+	sort.Strings(want)
+	got := make([]string, 0, len(gotEnv))
+	for name := range gotEnv {
+		got = append(got, name)
+	}
+	sort.Strings(got)
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("%s sidecar env variable names should be exactly %v, got %v", kind, want, got)
+	}
 }
 
 // kind = "tcp" sidecar (spec §6.1.1 / §4.2): the pinned 0.1.3 image,
@@ -177,10 +223,21 @@ func assertTCPTaskDefinitionShape(t *testing.T, td *types.TaskDefinition) {
 	app, sidecar := splitContainers(t, td)
 
 	if aws.ToString(sidecar.Image) != tcpCustodianImage {
-		t.Errorf("tcp sidecar image should be %q, got %q", tcpCustodianImage, aws.ToString(sidecar.Image))
+		t.Errorf(
+			"tcp sidecar image should be %q, got %q",
+			tcpCustodianImage,
+			aws.ToString(sidecar.Image),
+		)
 	}
-	if got := envMap(sidecar.Environment)["WATCH_TCP"]; got != "30000" {
-		t.Errorf("tcp sidecar WATCH_TCP should be \"30000\" (the example's default tcp_port), got %q", got)
+	gotEnv := envMap(sidecar.Environment)
+	assertExactEnvNames(t, "tcp", gotEnv, []string{
+		"DNS_ZONE_ID", "DNS_RECORD", "WATCH_IDLE", "WATCH_TCP", "SNS_TOPIC_ARN",
+	})
+	if got := gotEnv["WATCH_TCP"]; got != "30000" {
+		t.Errorf(
+			"tcp sidecar WATCH_TCP should be \"30000\" (the example's default tcp_port), got %q",
+			got,
+		)
 	}
 	if sidecar.HealthCheck != nil {
 		t.Errorf("tcp sidecar should carry no health check, got %+v", sidecar.HealthCheck)
@@ -189,10 +246,17 @@ func assertTCPTaskDefinitionShape(t *testing.T, td *types.TaskDefinition) {
 		t.Errorf("tcp app container should carry no dependsOn, got %+v", app.DependsOn)
 	}
 	if app.StopTimeout != nil {
-		t.Errorf("tcp app container should carry no stopTimeout, got %v", aws.ToInt32(app.StopTimeout))
+		t.Errorf(
+			"tcp app container should carry no stopTimeout, got %v",
+			aws.ToInt32(app.StopTimeout),
+		)
 	}
-	if td.RuntimePlatform == nil || td.RuntimePlatform.CpuArchitecture != types.CPUArchitectureX8664 {
-		t.Errorf("tcp task definition runtimePlatform.cpuArchitecture should be X86_64, got %+v", td.RuntimePlatform)
+	if td.RuntimePlatform == nil ||
+		td.RuntimePlatform.CpuArchitecture != types.CPUArchitectureX8664 {
+		t.Errorf(
+			"tcp task definition runtimePlatform.cpuArchitecture should be X86_64, got %+v",
+			td.RuntimePlatform,
+		)
 	}
 }
 
@@ -209,7 +273,11 @@ func assertMinecraftTaskDefinitionShape(
 	app, sidecar := splitContainers(t, td)
 
 	if aws.ToString(sidecar.Image) != minecraftCustodianImage {
-		t.Errorf("minecraft sidecar image should be %q, got %q", minecraftCustodianImage, aws.ToString(sidecar.Image))
+		t.Errorf(
+			"minecraft sidecar image should be %q, got %q",
+			minecraftCustodianImage,
+			aws.ToString(sidecar.Image),
+		)
 	}
 	if !aws.ToBool(sidecar.Essential) {
 		t.Errorf("minecraft sidecar should be essential = true")
@@ -225,6 +293,11 @@ func assertMinecraftTaskDefinitionShape(
 		"CUSTODIAN_GATE_TIMEOUT":  "110s", // built-in default; expires before ECS's 120s startTimeout on the HEALTHY dependency.
 	}
 	gotEnv := envMap(sidecar.Environment)
+	wantNames := make([]string, 0, len(wantEnv))
+	for name := range wantEnv {
+		wantNames = append(wantNames, name)
+	}
+	assertExactEnvNames(t, "minecraft", gotEnv, wantNames)
 	for name, want := range wantEnv {
 		if got := gotEnv[name]; got != want {
 			t.Errorf("minecraft sidecar env %s should be %q, got %q", name, want, got)
@@ -236,17 +309,30 @@ func assertMinecraftTaskDefinitionShape(
 	}
 	hc := sidecar.HealthCheck
 	if !reflect.DeepEqual(hc.Command, []string{"CMD", "/custodian", "healthcheck"}) {
-		t.Errorf("minecraft sidecar health check command should be [CMD /custodian healthcheck], got %v", hc.Command)
+		t.Errorf(
+			"minecraft sidecar health check command should be [CMD /custodian healthcheck], got %v",
+			hc.Command,
+		)
 	}
-	if aws.ToInt32(hc.Interval) != 5 || aws.ToInt32(hc.Timeout) != 2 || aws.ToInt32(hc.StartPeriod) != 240 ||
+	if aws.ToInt32(hc.Interval) != 5 || aws.ToInt32(hc.Timeout) != 2 ||
+		aws.ToInt32(hc.StartPeriod) != 240 ||
 		aws.ToInt32(hc.Retries) != 3 {
-		t.Errorf("minecraft sidecar health check should be interval=5 timeout=2 startPeriod=240 retries=3, got %+v", hc)
+		t.Errorf(
+			"minecraft sidecar health check should be interval=5 timeout=2 startPeriod=240 retries=3, got %+v",
+			hc,
+		)
 	}
 	if aws.ToInt32(sidecar.StartTimeout) != 120 {
-		t.Errorf("minecraft sidecar startTimeout should be 120, got %d", aws.ToInt32(sidecar.StartTimeout))
+		t.Errorf(
+			"minecraft sidecar startTimeout should be 120, got %d",
+			aws.ToInt32(sidecar.StartTimeout),
+		)
 	}
 	if aws.ToInt32(sidecar.StopTimeout) != 120 {
-		t.Errorf("minecraft sidecar stopTimeout should be 120, got %d", aws.ToInt32(sidecar.StopTimeout))
+		t.Errorf(
+			"minecraft sidecar stopTimeout should be 120, got %d",
+			aws.ToInt32(sidecar.StopTimeout),
+		)
 	}
 
 	if len(app.DependsOn) != 1 ||
@@ -262,7 +348,8 @@ func assertMinecraftTaskDefinitionShape(
 		t.Errorf("minecraft app stopTimeout should be 120, got %d", aws.ToInt32(app.StopTimeout))
 	}
 
-	if td.RuntimePlatform == nil || td.RuntimePlatform.CpuArchitecture != types.CPUArchitectureArm64 {
+	if td.RuntimePlatform == nil ||
+		td.RuntimePlatform.CpuArchitecture != types.CPUArchitectureArm64 {
 		t.Errorf(
 			"minecraft task definition runtimePlatform.cpuArchitecture should be ARM64, got %+v",
 			td.RuntimePlatform,
@@ -326,12 +413,19 @@ func assertIAMWiring(
 		t.Errorf("control policy document does not grant ecs:ListTasks: %s", polDoc)
 	}
 
-	clustersOut, err := ecsClient.DescribeClusters(ctx, &ecs.DescribeClustersInput{Clusters: []string{clusterName}})
+	clustersOut, err := ecsClient.DescribeClusters(
+		ctx,
+		&ecs.DescribeClustersInput{Clusters: []string{clusterName}},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(clustersOut.Clusters) != 1 {
-		t.Fatalf("expected exactly 1 cluster named %q, got %d", clusterName, len(clustersOut.Clusters))
+		t.Fatalf(
+			"expected exactly 1 cluster named %q, got %d",
+			clusterName,
+			len(clustersOut.Clusters),
+		)
 	}
 	clusterArn := aws.ToString(clustersOut.Clusters[0].ClusterArn)
 	if !strings.Contains(polDoc, "ArnEquals") || !strings.Contains(polDoc, clusterArn) {
@@ -345,7 +439,12 @@ func assertIAMWiring(
 
 // The events topic exists, and with sns_kms_key_id = null it must carry no KMS
 // master key (an unexpected key means the null wiring regressed).
-func assertTopicUnencrypted(ctx context.Context, t *testing.T, snsClient *sns.Client, topicArn string) {
+func assertTopicUnencrypted(
+	ctx context.Context,
+	t *testing.T,
+	snsClient *sns.Client,
+	topicArn string,
+) {
 	t.Helper()
 	attrs, err := snsClient.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
 		TopicArn: aws.String(topicArn),
@@ -376,8 +475,12 @@ func assertAlarmTopicAllowsCloudWatchPublish(
 		t.Fatal(err)
 	}
 	policy := attrs.Attributes["Policy"]
-	if !strings.Contains(policy, "cloudwatch.amazonaws.com") || !strings.Contains(policy, "SNS:Publish") {
-		t.Errorf("alarms topic policy should allow cloudwatch.amazonaws.com SNS:Publish, got %s", policy)
+	if !strings.Contains(policy, "cloudwatch.amazonaws.com") ||
+		!strings.Contains(policy, "SNS:Publish") {
+		t.Errorf(
+			"alarms topic policy should allow cloudwatch.amazonaws.com SNS:Publish, got %s",
+			policy,
+		)
 	}
 }
 
@@ -445,10 +548,16 @@ func assertMaxRuntimeAlarm(
 		t.Errorf("alarm threshold should be 0, got %v", aws.ToFloat64(alarm.Threshold))
 	}
 	if alarm.ComparisonOperator != cwtypes.ComparisonOperatorGreaterThanThreshold {
-		t.Errorf("alarm comparison operator should be GreaterThanThreshold, got %q", alarm.ComparisonOperator)
+		t.Errorf(
+			"alarm comparison operator should be GreaterThanThreshold, got %q",
+			alarm.ComparisonOperator,
+		)
 	}
 	if aws.ToString(alarm.TreatMissingData) != "notBreaching" {
-		t.Errorf("alarm treat_missing_data should be notBreaching, got %q", aws.ToString(alarm.TreatMissingData))
+		t.Errorf(
+			"alarm treat_missing_data should be notBreaching, got %q",
+			aws.ToString(alarm.TreatMissingData),
+		)
 	}
 
 	found := false
@@ -458,7 +567,11 @@ func assertMaxRuntimeAlarm(
 		}
 	}
 	if !found {
-		t.Errorf("alarm_actions should contain the alarms topic %s, got %v", wantAlarmTopicArn, alarm.AlarmActions)
+		t.Errorf(
+			"alarm_actions should contain the alarms topic %s, got %v",
+			wantAlarmTopicArn,
+			alarm.AlarmActions,
+		)
 	}
 }
 
@@ -486,7 +599,13 @@ func TestServiceParkedAtZero(t *testing.T) {
 		},
 	}
 
-	defer terraform.DestroyContext(t, ctx, terraformOptions)
+	// t.Cleanup, not defer: the "tcp"/"minecraft" subtests below call
+	// t.Parallel(), which pauses them and returns control to this function
+	// immediately, so a deferred destroy here would fire (and start tearing
+	// down infra) before the parallel subtests actually run their
+	// assertions. t.Cleanup runs after all of this test's subtests
+	// (including parallel ones) have finished.
+	t.Cleanup(func() { terraform.DestroyContext(t, ctx, terraformOptions) })
 	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
 	vals := outputStrings(t, terraform.OutputAllContext(t, ctx, terraformOptions), []string{
@@ -506,61 +625,77 @@ func TestServiceParkedAtZero(t *testing.T) {
 	snsClient := sns.NewFromConfig(cfg)
 	cwClient := cloudwatch.NewFromConfig(cfg)
 
-	// kind = "tcp" (module default), FARGATE_SPOT (module default).
-	tcpTaskDefArn := assertServiceParked(
-		ctx,
-		t,
-		ecsClient,
-		vals["ecs_cluster_name"],
-		vals["ecs_service_name"],
-		"FARGATE_SPOT",
-	)
-	tcpTD := describeTaskDefinition(ctx, t, ecsClient, tcpTaskDefArn)
-	assertTCPTaskDefinitionShape(t, tcpTD)
-	assertIAMWiring(
-		ctx,
-		t,
-		iamClient,
-		ecsClient,
-		vals["service_role_name"],
-		vals["svc_control_policy_arn"],
-		vals["ecs_cluster_name"],
-	)
-	assertTopicUnencrypted(ctx, t, snsClient, vals["events_topic_arn"])
-	assertMaxRuntimeAlarm(ctx, t, cwClient, vals["ecs_cluster_name"], vals["ecs_service_name"], vals["alarm_topic_arn"])
-	assertAlarmTopicAllowsCloudWatchPublish(ctx, t, snsClient, vals["alarm_topic_arn"])
+	// Split into subtests (not just sequential calls) so a t.Fatal in one
+	// kind's shape assertions (e.g. splitContainers) can't skip the other
+	// kind's verification entirely — each kind gets its own pass/fail.
+	t.Run("tcp", func(t *testing.T) {
+		t.Parallel()
+		// kind = "tcp" (module default), FARGATE_SPOT (module default).
+		tcpTaskDefArn := assertServiceParked(
+			ctx,
+			t,
+			ecsClient,
+			vals["ecs_cluster_name"],
+			vals["ecs_service_name"],
+			"FARGATE_SPOT",
+		)
+		tcpTD := describeTaskDefinition(ctx, t, ecsClient, tcpTaskDefArn)
+		assertTCPTaskDefinitionShape(t, tcpTD)
+		assertIAMWiring(
+			ctx,
+			t,
+			iamClient,
+			ecsClient,
+			vals["service_role_name"],
+			vals["svc_control_policy_arn"],
+			vals["ecs_cluster_name"],
+		)
+		assertTopicUnencrypted(ctx, t, snsClient, vals["events_topic_arn"])
+		assertMaxRuntimeAlarm(
+			ctx,
+			t,
+			cwClient,
+			vals["ecs_cluster_name"],
+			vals["ecs_service_name"],
+			vals["alarm_topic_arn"],
+		)
+		assertAlarmTopicAllowsCloudWatchPublish(ctx, t, snsClient, vals["alarm_topic_arn"])
+	})
 
-	// kind = "minecraft", ARM64, FARGATE (the example's overrides).
-	mcTaskDefArn := assertServiceParked(
-		ctx,
-		t,
-		ecsClient,
-		vals["mc_ecs_cluster_name"],
-		vals["mc_ecs_service_name"],
-		"FARGATE",
-	)
-	mcTD := describeTaskDefinition(ctx, t, ecsClient, mcTaskDefArn)
-	assertMinecraftTaskDefinitionShape(t, mcTD,
-		vals["mc_ecs_cluster_name"], vals["mc_ecs_service_name"],
-		vals["dns_zone_id"], vals["mc_dns_record"], vals["mc_events_topic_arn"],
-	)
-	assertIAMWiring(
-		ctx,
-		t,
-		iamClient,
-		ecsClient,
-		vals["mc_service_role_name"],
-		vals["mc_svc_control_policy_arn"],
-		vals["mc_ecs_cluster_name"],
-	)
-	assertTopicUnencrypted(ctx, t, snsClient, vals["mc_events_topic_arn"])
-	assertMaxRuntimeAlarm(
-		ctx,
-		t,
-		cwClient,
-		vals["mc_ecs_cluster_name"],
-		vals["mc_ecs_service_name"],
-		vals["mc_alarm_topic_arn"],
-	)
-	assertAlarmTopicAllowsCloudWatchPublish(ctx, t, snsClient, vals["mc_alarm_topic_arn"])
+	t.Run("minecraft", func(t *testing.T) {
+		t.Parallel()
+		// kind = "minecraft", ARM64, FARGATE (the example's overrides).
+		mcTaskDefArn := assertServiceParked(
+			ctx,
+			t,
+			ecsClient,
+			vals["mc_ecs_cluster_name"],
+			vals["mc_ecs_service_name"],
+			"FARGATE",
+		)
+		mcTD := describeTaskDefinition(ctx, t, ecsClient, mcTaskDefArn)
+		assertMinecraftTaskDefinitionShape(t, mcTD,
+			vals["mc_ecs_cluster_name"], vals["mc_ecs_service_name"],
+			vals["dns_zone_id"], vals["mc_dns_record"], vals["mc_events_topic_arn"],
+		)
+		assertIAMWiring(
+			ctx,
+			t,
+			iamClient,
+			ecsClient,
+			vals["mc_service_role_name"],
+			vals["mc_svc_control_policy_arn"],
+			vals["mc_ecs_cluster_name"],
+		)
+		assertTopicUnencrypted(ctx, t, snsClient, vals["mc_events_topic_arn"])
+		assertMaxRuntimeAlarm(
+			ctx,
+			t,
+			cwClient,
+			vals["mc_ecs_cluster_name"],
+			vals["mc_ecs_service_name"],
+			vals["mc_alarm_topic_arn"],
+		)
+		assertAlarmTopicAllowsCloudWatchPublish(ctx, t, snsClient, vals["mc_alarm_topic_arn"])
+	})
 }
