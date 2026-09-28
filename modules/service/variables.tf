@@ -259,6 +259,25 @@ variable "logs_kms_key_id" {
   }
 }
 
+variable "max_runtime_hours" {
+  type        = number
+  default     = 12
+  nullable    = false
+  description = "Maximum number of consecutive hours the service may run before the cost alarm fires. Drives the CloudWatch alarm's evaluation_periods and datapoints_to_alarm (period is fixed at 3600s/1h), so it is bounded by CloudWatch's 7-day alarm evaluation window. Must be between 1 and 168 (1 hour to 7 days)."
+
+  validation {
+    condition     = var.max_runtime_hours >= 1 && var.max_runtime_hours <= 168
+    error_message = "max_runtime_hours must be between 1 and 168 (1 hour to 7 days)."
+  }
+}
+
+variable "alarm_email_endpoints" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Email addresses to subscribe to the cost alarm's SNS topic. Each address must confirm the SNS subscription email before it will receive alarm notifications."
+}
+
 variable "sns_kms_key_id" {
   type        = string
   description = "KMS key ARN or key ID to use for encrypting SNS topics. Accepts full KMS ARNs (including multi-Region mrk- keys), standalone UUID key IDs, or standalone mrk- key IDs."
