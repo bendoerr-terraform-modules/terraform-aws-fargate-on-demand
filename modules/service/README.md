@@ -36,18 +36,53 @@ Minecraft custodian on `ARM64` + `FARGATE` for steadier (non-preemptible) capaci
 
 The module creates a CloudWatch alarm that fires once the service has run for more than
 `max_runtime_hours` consecutive hours (default 12), as a backstop against a stuck watchdog leaving
-the task running indefinitely. The alarm publishes to its own SNS topic (`alarm_topic_arn`), kept
-separate from the status topic (`events_topic_arn`) — the notice Lambdas that subscribe to the
-status topic parse custodian lifecycle JSON and would fail on a CloudWatch alarm payload. Subscribe
-your own endpoints to `alarm_topic_arn`, or list emails in `alarm_email_endpoints` and this module
-will subscribe them for you (each address still has to confirm the SNS subscription).
+the task running indefinitely. The alarm is approximate, not a measurement of continuous runtime: it
+fires when the service has emitted at least one `CPUUtilization` sample in each of the last
+`max_runtime_hours` hourly periods (`statistic = SampleCount`, `period = 3600`). A brief stop and
+restart that both land within the same hourly period still counts as a sample for that period, so a
+service that idles down and relaunches within an hour, repeated across `max_runtime_hours` hours,
+can still trip the alarm even though it never ran continuously — treat this as "roughly running for
+that long," not a precise uptime measurement.
 
-Both topics share `sns_kms_key_id`. Alarms can notify either way: leave `sns_kms_key_id` unset
-(`null`) for an unencrypted topic, or pass a customer-managed KMS key whose key policy separately
-grants `cloudwatch.amazonaws.com` `kms:Decrypt`/`kms:GenerateDataKey*` (this module does not manage
-the key policy) — without that grant, CloudWatch's publish to the alarm topic is denied. The one key
-that never works here is the AWS-managed `alias/aws/sns`: CloudWatch alarms cannot publish through
-it, so if you want an encrypted alarm topic, use a customer-managed key, not `alias/aws/sns`.
+The alarm publishes to its own SNS topic (`alarm_topic_arn`), kept separate from the status topic
+(`events_topic_arn`) — the notice Lambdas that subscribe to the status topic parse custodian
+lifecycle JSON and would fail on a CloudWatch alarm payload. Subscribe your own endpoints to
+`alarm_topic_arn`, or list emails in `alarm_email_endpoints` and this module will subscribe them for
+you (each address still has to confirm the SNS subscription).
+
+Set `alarm_enabled = false` to skip creating the alarm entirely — no alarms SNS topic, topic policy,
+subscriptions, or CloudWatch alarm, and `alarm_topic_arn` is `null`. Defaults to `true`.
+
+Both topics share `sns_kms_key_id`, which is a required input with no default — pass
+`sns_kms_key_id = null` explicitly for an unencrypted topic (there is no implicit null; leaving it
+out entirely is a Terraform error, not a fallback to unencrypted). Alarms can notify either way: pass
+`null` for an unencrypted topic, or a customer-managed KMS key whose key policy separately grants
+`cloudwatch.amazonaws.com` `kms:Decrypt`/`kms:GenerateDataKey*` (this module does not manage the key
+policy) — without that grant, CloudWatch's publish to the alarm topic is denied. The one key that
+never works here is the AWS-managed `alias/aws/sns`: CloudWatch alarms cannot publish through it, so
+if you want an encrypted alarm topic, use a customer-managed key, not `alias/aws/sns`.
+
+## Deployment settings
+
+The ECS service is always created with `deployment_maximum_percent = 100` and
+`deployment_minimum_healthy_percent = 0`, for every `custodian.kind`. That means a deployment never
+runs two tasks at once against the same EFS data — the EFS volume has a single writer at all times.
+The trade-off: rolling out a new task definition while the service is actively running (a nonzero
+desired count) stops the running task before starting the replacement, a brief outage, rather than
+briefly running two tasks (and so two servers) against the same world/data. This is not configurable.
+
+## Security notes
+
+All containers in a task share the task's single IAM role (`aws_iam_role.svc`, exposed as
+`service_role_arn`/`service_role_name`) — there is no per-container IAM isolation in ECS. Any IAM
+grant reachable by the app container's task role (EFS access, DNS record control, SNS publish, the
+custodian's own log group) is equally reachable from the game/app container, and vice versa.
+
+Values set in `custodian.environment` (and `environment_variables`/`secret_variables` on the app
+container) are rendered directly into the ECS task definition, which is visible in the AWS console,
+the ECS API, and Terraform state. Do not put secrets in `custodian.environment` or
+`environment_variables` — use `secret_variables` (which sources from Secrets Manager/SSM Parameter
+Store at task launch) for anything sensitive.
 
 ## Reference
 
@@ -116,6 +151,7 @@ it, so if you want an encrypted alarm topic, use a customer-managed key, not `al
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_additional_container_definitions"></a> [additional_container_definitions](#input_additional_container_definitions) | n/a | `list(any)` | `[]` | no |
+| <a name="input_alarm_enabled"></a> [alarm_enabled](#input_alarm_enabled) | Whether to create the cost alarm's SNS topic (and its policy/subscriptions) and the CloudWatch max-runtime alarm itself. When false, none of those resources are created and alarm_topic_arn is null. | `bool` | `true` | no |
 | <a name="input_alarm_email_endpoints"></a> [alarm_email_endpoints](#input_alarm_email_endpoints) | Email addresses to subscribe to the cost alarm's SNS topic. Each address must confirm the SNS subscription email before it will receive alarm notifications. | `list(string)` | `[]` | no |
 | <a name="input_capacity_provider"></a> [capacity_provider](#input_capacity_provider) | Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE. Changing it on an existing service may force the ECS service to be replaced; harmless while the service is parked at desired_count = 0, but plan a maintenance window if it's running. | `string` | `"FARGATE_SPOT"` | no |
 | <a name="input_context"></a> [context](#input_context) | Shared Context from Ben's terraform-null-context | <pre>object({<br/>    attributes     = list(string)<br/>    dns_namespace  = string<br/>    environment    = string<br/>    instance       = string<br/>    instance_short = string<br/>    namespace      = string<br/>    region         = string<br/>    region_short   = string<br/>    role           = string<br/>    role_short     = string<br/>    project        = string<br/>    tags           = map(string)<br/>  })</pre> | n/a | yes |
