@@ -2,6 +2,7 @@ package test_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/backup"
+	backuptypes "github.com/aws/aws-sdk-go-v2/service/backup/types"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efstypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/gruntwork-io/terratest/modules/random"
@@ -75,41 +77,79 @@ func backupVaultNameFromArn(t *testing.T, arn string) string {
 	return parts[len(parts)-1]
 }
 
+// isBackupResourceNotFound reports whether err is a
+// backuptypes.ResourceNotFoundException: the vault, or a recovery point
+// inside it, is already gone. That's success for draining purposes, not a
+// retryable failure.
+func isBackupResourceNotFound(err error) bool {
+	var nfe *backuptypes.ResourceNotFoundException
+	return errors.As(err, &nfe)
+}
+
+// deleteRecoveryPoint deletes one recovery point, treating "already gone"
+// (ResourceNotFoundException) as success rather than an error.
+func deleteRecoveryPoint(
+	ctx context.Context, backupClient *backup.Client, vaultName string, recoveryPointArn *string,
+) error {
+	_, err := backupClient.DeleteRecoveryPoint(ctx, &backup.DeleteRecoveryPointInput{
+		BackupVaultName:  &vaultName,
+		RecoveryPointArn: recoveryPointArn,
+	})
+	if err != nil && !isBackupResourceNotFound(err) {
+		return fmt.Errorf("DeleteRecoveryPoint(%s): %w", *recoveryPointArn, err)
+	}
+	return nil
+}
+
+// drainBackupVaultOnce makes one full pass (all pages) over vaultName's
+// recovery points and deletes each one, returning how many were seen. A
+// vault that no longer exists counts as already drained (0, nil).
+func drainBackupVaultOnce(ctx context.Context, backupClient *backup.Client, vaultName string) (int, error) {
+	seen := 0
+	paginator := backup.NewListRecoveryPointsByBackupVaultPaginator(
+		backupClient, &backup.ListRecoveryPointsByBackupVaultInput{BackupVaultName: &vaultName},
+	)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			if isBackupResourceNotFound(err) {
+				return 0, nil
+			}
+			return 0, err
+		}
+		for _, rp := range page.RecoveryPoints {
+			if rp.RecoveryPointArn == nil {
+				continue
+			}
+			if delErr := deleteRecoveryPoint(ctx, backupClient, vaultName, rp.RecoveryPointArn); delErr != nil {
+				return 0, delErr
+			}
+			seen++
+		}
+	}
+	return seen, nil
+}
+
 // emptyBackupVault deletes every recovery point in vaultName and waits until
 // the vault reports none left. The example's daily backup rule can fire
 // while a test is mid-run, landing a new recovery point between apply and
 // the deferred `terraform destroy`; AWS Backup refuses to delete a vault
-// that still holds a recovery point, which would otherwise fail cleanup.
+// that still holds a recovery point, which would otherwise fail cleanup. A
+// vault that's already gone, or a recovery point that's already gone by the
+// time we try to delete it, counts as drained rather than an error.
 func emptyBackupVault(ctx context.Context, t *testing.T, backupClient *backup.Client, vaultName string) {
 	t.Helper()
 
 	description := fmt.Sprintf("empty backup vault %s", vaultName)
 	_, err := retry.DoWithRetryContextE(t, ctx, description, 10, 15*time.Second, func() (string, error) {
-		listOut, err := backupClient.ListRecoveryPointsByBackupVault(ctx, &backup.ListRecoveryPointsByBackupVaultInput{
-			BackupVaultName: &vaultName,
-		})
+		seen, err := drainBackupVaultOnce(ctx, backupClient, vaultName)
 		if err != nil {
 			return "", err
 		}
-		if len(listOut.RecoveryPoints) == 0 {
+		if seen == 0 {
 			return "", nil
 		}
-		for _, rp := range listOut.RecoveryPoints {
-			if rp.RecoveryPointArn == nil {
-				continue
-			}
-			_, delErr := backupClient.DeleteRecoveryPoint(ctx, &backup.DeleteRecoveryPointInput{
-				BackupVaultName:  &vaultName,
-				RecoveryPointArn: rp.RecoveryPointArn,
-			})
-			if delErr != nil {
-				return "", fmt.Errorf("DeleteRecoveryPoint(%s): %w", *rp.RecoveryPointArn, delErr)
-			}
-		}
-		return "", fmt.Errorf(
-			"backup vault %s still has %d recovery point(s) pending deletion",
-			vaultName, len(listOut.RecoveryPoints),
-		)
+		return "", fmt.Errorf("backup vault %s still has %d recovery point(s) pending deletion", vaultName, seen)
 	})
 	if err != nil {
 		t.Errorf("could not empty backup vault %s before destroy: %v", vaultName, err)
