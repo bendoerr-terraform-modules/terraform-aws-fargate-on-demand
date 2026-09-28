@@ -50,6 +50,7 @@ jobs:
             acm.us-east-1.amazonaws.com:443
             apigateway.us-east-1.amazonaws.com:443
             api.github.com:443
+            backup.us-east-1.amazonaws.com:443
             budgets.amazonaws.com:443
             checkpoint-api.hashicorp.com:443
             cloudfront.amazonaws.com:443
@@ -75,6 +76,7 @@ jobs:
             kms.us-west-2.amazonaws.com:443
             lambda.us-east-1.amazonaws.com:443
             logs.us-east-1.amazonaws.com:443
+            monitoring.us-east-1.amazonaws.com:443
             objects.githubusercontent.com:443
             proxy.golang.org:443
             raw.githubusercontent.com:443
