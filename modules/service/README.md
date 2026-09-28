@@ -30,7 +30,7 @@ to use the version this module release ships with.
 `cpu_architecture` (`X86_64`, `ARM64`) sets the task's `runtime_platform`; `capacity_provider`
 (`FARGATE_SPOT`, `FARGATE`) sets the ECS service's capacity provider strategy. Both default to
 today's behavior (`X86_64` / `FARGATE_SPOT`) and can be changed independently — e.g. run the
-Minecraft custodian on `ARM64` + `FARGATE` for a steadier (non-preemptible) host.
+Minecraft custodian on `ARM64` + `FARGATE` for steadier (non-preemptible) capacity.
 
 ## Cost alarm
 
@@ -70,13 +70,13 @@ it, so if you want an encrypted alarm topic, use a customer-managed key, not `al
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_label"></a> [label](#module_label) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_alarms"></a> [label_alarms](#module_label_alarms) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_ctl"></a> [label_ctl](#module_label_ctl) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_data"></a> [label_data](#module_label_data) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_logs"></a> [label_logs](#module_label_logs) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_topic"></a> [label_topic](#module_label_topic) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_wd"></a> [label_wd](#module_label_wd) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
+| <a name="module_label"></a> [label](#module_label) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_alarms"></a> [label_alarms](#module_label_alarms) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_ctl"></a> [label_ctl](#module_label_ctl) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_data"></a> [label_data](#module_label_data) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_logs"></a> [label_logs](#module_label_logs) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_topic"></a> [label_topic](#module_label_topic) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_wd"></a> [label_wd](#module_label_wd) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
 
 ### Resources
 
@@ -140,8 +140,8 @@ it, so if you want an encrypted alarm topic, use a customer-managed key, not `al
 | <a name="input_service_image"></a> [service_image](#input_service_image) | n/a | `string` | `""` | no |
 | <a name="input_service_subnet_ids"></a> [service_subnet_ids](#input_service_subnet_ids) | n/a | `list(string)` | n/a | yes |
 | <a name="input_sns_kms_key_id"></a> [sns_kms_key_id](#input_sns_kms_key_id) | KMS key ARN or key ID to use for encrypting SNS topics. Accepts full KMS ARNs (including multi-Region mrk- keys), standalone UUID key IDs, or standalone mrk- key IDs. | `string` | n/a | yes |
-| <a name="input_task_cpu"></a> [task_cpu](#input_task_cpu) | The number of CPU units used by the Fargate task. Must be a valid Fargate CPU value. Note: task_cpu and task_memory must form a valid combination per AWS Fargate requirements. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html | `string` | n/a | yes |
-| <a name="input_task_memory"></a> [task_memory](#input_task_memory) | The amount of memory (in MiB) used by the Fargate task. Must be a valid Fargate memory value. Note: task_cpu and task_memory must form a valid combination per AWS Fargate requirements. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html | `string` | n/a | yes |
+| <a name="input_task_cpu"></a> [task_cpu](#input_task_cpu) | The number of CPU units used by the Fargate task. Must be a valid Fargate CPU value. Note: task_cpu and task_memory must form a valid combination per AWS Fargate requirements. See <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html> | `string` | n/a | yes |
+| <a name="input_task_memory"></a> [task_memory](#input_task_memory) | The amount of memory (in MiB) used by the Fargate task. Must be a valid Fargate memory value. Note: task_cpu and task_memory must form a valid combination per AWS Fargate requirements. See <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html> | `string` | n/a | yes |
 | <a name="input_vpc_id"></a> [vpc_id](#input_vpc_id) | n/a | `string` | n/a | yes |
 
 ### Outputs

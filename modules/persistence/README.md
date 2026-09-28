@@ -12,8 +12,7 @@ AWS Backup is on by default (`backup_enabled = true`): a daily recovery point at
 `backup_retention_days` (default 14 days). Turning this off, or destroying the module after backups
 have already run, does **not** clean up what AWS Backup has already stored — a vault that still holds
 recovery points cannot be deleted. If you disable `backup_enabled` or plan to `terraform destroy`,
-remove or let expire the vault's recovery points first (AWS Backup console, or `aws backup
-delete-recovery-point`), otherwise the vault deletion (and the destroy) will fail.
+remove or let expire the vault's recovery points first (AWS Backup console, or `aws backup delete-recovery-point`), otherwise the vault deletion (and the destroy) will fail.
 
 ## Reference
 
@@ -36,12 +35,12 @@ delete-recovery-point`), otherwise the vault deletion (and the destroy) will fai
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_label_backup_plan"></a> [label_backup_plan](#module_label_backup_plan) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_backup_role"></a> [label_backup_role](#module_label_backup_role) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_backup_vault"></a> [label_backup_vault](#module_label_backup_vault) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_data"></a> [label_data](#module_label_data) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_data_nfs"></a> [label_data_nfs](#module_label_data_nfs) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_data_rw"></a> [label_data_rw](#module_label_data_rw) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
+| <a name="module_label_backup_plan"></a> [label_backup_plan](#module_label_backup_plan) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_backup_role"></a> [label_backup_role](#module_label_backup_role) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_backup_vault"></a> [label_backup_vault](#module_label_backup_vault) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_data"></a> [label_data](#module_label_data) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_data_nfs"></a> [label_data_nfs](#module_label_data_nfs) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_data_rw"></a> [label_data_rw](#module_label_data_rw) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
 
 ### Resources
 

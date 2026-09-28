@@ -29,9 +29,9 @@ pin to a different supported Python runtime.
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_label_ecs_svc_update"></a> [label_ecs_svc_update](#module_label_ecs_svc_update) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_launcher"></a> [label_launcher](#module_label_launcher) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_launcher_logs"></a> [label_launcher_logs](#module_label_launcher_logs) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
+| <a name="module_label_ecs_svc_update"></a> [label_ecs_svc_update](#module_label_ecs_svc_update) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_launcher"></a> [label_launcher](#module_label_launcher) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_launcher_logs"></a> [label_launcher_logs](#module_label_launcher_logs) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
 
 ### Resources
 
