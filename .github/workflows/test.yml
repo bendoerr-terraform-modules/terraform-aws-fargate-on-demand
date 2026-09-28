@@ -159,11 +159,6 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: "Setup Python"
-        uses: actions/setup-python@abc1286fb12d9d60f1b2fef89b905a6fd5f5202f # v5.2.0
-        with:
-          python-version: '3.x'
-
       - name: "Run Launcher Python Tests"
         shell: bash
         run: python3 -m unittest discover -s modules/launcher/test -p 'test_*.py' -v
