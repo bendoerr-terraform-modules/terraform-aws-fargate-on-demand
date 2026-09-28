@@ -16,13 +16,21 @@ import (
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
 
-// The example's full output set, present regardless of backup_enabled: for
-// backup_enabled = false, backup_vault_arn/backup_plan_id are present but
-// null rather than absent (spec §5.1).
+// The example's full output set when backup_enabled = true.
 var wantOutputKeys = []string{
 	"name", "file_system_id", "access_point_id", "mount_path",
 	"access_policy_arn", "access_security_group", "owner_gid", "owner_uid",
 	"backup_vault_arn", "backup_plan_id",
+}
+
+// The example's output set when backup_enabled = false: backup_vault_arn and
+// backup_plan_id are null root outputs, and Terraform drops null root
+// outputs from state/`output -json` (see
+// modules/efs-access/test/examples_complete_test.go), so they are absent
+// rather than present-with-null.
+var wantOutputKeysBackupDisabled = []string{
+	"name", "file_system_id", "access_point_id", "mount_path",
+	"access_policy_arn", "access_security_group", "owner_gid", "owner_uid",
 }
 
 func assertOutputKeySet(t *testing.T, outputs map[string]interface{}, wantKeys []string) {
@@ -199,8 +207,9 @@ func TestDefaults(t *testing.T) {
 }
 
 // TestBackupDisabled applies the example with backup_enabled = false and
-// asserts that no backup resources are created: the outputs are present but
-// null, and no aws_backup_* resource is in state.
+// asserts that no backup resources are created: backup_vault_arn and
+// backup_plan_id are absent from the outputs (Terraform drops null root
+// outputs), and no aws_backup_* resource is in state.
 func TestBackupDisabled(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -225,13 +234,13 @@ func TestBackupDisabled(t *testing.T) {
 	terraform.InitAndApplyContext(t, ctx, terraformOptions)
 
 	outputs := terraform.OutputAllContext(t, ctx, terraformOptions)
-	assertOutputKeySet(t, outputs, wantOutputKeys)
+	assertOutputKeySet(t, outputs, wantOutputKeysBackupDisabled)
 
-	if outputs["backup_vault_arn"] != nil {
-		t.Errorf("backup_vault_arn should be null when backup_enabled = false, got %#v", outputs["backup_vault_arn"])
+	if _, ok := outputs["backup_vault_arn"]; ok {
+		t.Errorf("backup_vault_arn should be absent when backup_enabled = false, got %#v", outputs["backup_vault_arn"])
 	}
-	if outputs["backup_plan_id"] != nil {
-		t.Errorf("backup_plan_id should be null when backup_enabled = false, got %#v", outputs["backup_plan_id"])
+	if _, ok := outputs["backup_plan_id"]; ok {
+		t.Errorf("backup_plan_id should be absent when backup_enabled = false, got %#v", outputs["backup_plan_id"])
 	}
 
 	state := terraform.RunTerraformCommand(t, terraformOptions, "state", "list")
