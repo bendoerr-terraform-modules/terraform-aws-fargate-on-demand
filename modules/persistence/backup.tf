@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 module "label_backup_vault" {
   source  = "git@github.com:bendoerr-terraform-modules/terraform-null-label?ref=v1.0.1"
   context = var.context
@@ -47,6 +49,11 @@ data "aws_iam_policy_document" "backup_assume_role" {
       type        = "Service"
       identifiers = ["backup.amazonaws.com"]
     }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
   }
 }
 
@@ -61,12 +68,6 @@ resource "aws_iam_role_policy_attachment" "backup" {
   count      = var.backup_enabled ? 1 : 0
   role       = aws_iam_role.backup[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
-}
-
-resource "aws_iam_role_policy_attachment" "backup_restores" {
-  count      = var.backup_enabled ? 1 : 0
-  role       = aws_iam_role.backup[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
 }
 
 resource "aws_backup_selection" "data" {

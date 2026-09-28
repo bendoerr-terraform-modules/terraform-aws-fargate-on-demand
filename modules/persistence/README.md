@@ -14,6 +14,11 @@ have already run, does **not** clean up what AWS Backup has already stored — a
 recovery points cannot be deleted. If you disable `backup_enabled` or plan to `terraform destroy`,
 remove or let expire the vault's recovery points first (AWS Backup console, or `aws backup delete-recovery-point`), otherwise the vault deletion (and the destroy) will fail.
 
+The backup IAM role only carries `AWSBackupServiceRolePolicyForBackup` — the minimum AWS Backup needs
+to take a backup. It does not carry `AWSBackupServiceRolePolicyForRestores`: restores choose an IAM
+role at restore time (in the AWS Backup console or `StartRestoreJob`'s `IamRoleArn`), so this module's
+backup role does not need restore permissions to do its own job.
+
 ## Reference
 
 <!-- BEGIN_TF_DOCS -->
@@ -55,11 +60,11 @@ remove or let expire the vault's recovery points first (AWS Backup console, or `
 | [aws_iam_policy.data_rw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
 | [aws_iam_role.backup](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy_attachment.backup](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.backup_restores](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_security_group.data_nfs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_vpc_security_group_egress_rule.data_nfs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.data_nfs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.data_nfs_encrypted](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.backup_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.data_rw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_kms_alias.efs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/kms_alias) | data source |
