@@ -67,13 +67,12 @@ func outputString(t *testing.T, outputs map[string]interface{}, key string) stri
 }
 
 // backupVaultNameFromArn extracts the vault name from
-// arn:aws:backup:<region>:<account>:backup-vault:<name>.
+// arn:aws:backup:<region>:<account>:backup-vault:<name>. strings.Split never
+// returns an empty slice (even "" splits to [""]), so there is no zero-length
+// case to guard against here.
 func backupVaultNameFromArn(t *testing.T, arn string) string {
 	t.Helper()
 	parts := strings.Split(arn, ":")
-	if len(parts) == 0 {
-		t.Fatalf("could not parse backup vault name from ARN %q", arn)
-	}
 	return parts[len(parts)-1]
 }
 
@@ -324,14 +323,18 @@ func TestDefaults(t *testing.T) {
 	}
 
 	efsClient := efs.NewFromConfig(cfg)
-	assertFileSystemElastic(ctx, t, efsClient, fileSystemID)
-
 	backupClient := backup.NewFromConfig(cfg)
 	vaultName := backupVaultNameFromArn(t, backupVaultArn)
 
+	// Backup client + drain defer registered before the first AWS assertion
+	// (CodeRabbit, ~334): assertFileSystemElastic below calls t.Fatal on
+	// error, which would otherwise skip this defer's registration entirely
+	// and leave a recovery point blocking the deferred `terraform destroy`.
 	// Declared after the destroy defer above, so per Go's LIFO defer order it
 	// runs first: drain the vault's recovery points before destroy runs.
 	defer emptyBackupVault(ctx, t, backupClient, vaultName)
+
+	assertFileSystemElastic(ctx, t, efsClient, fileSystemID)
 
 	assertBackupVaultExists(ctx, t, backupClient, vaultName, backupVaultArn)
 	assertBackupPlanSchedule(ctx, t, backupClient, backupPlanID, vaultName)
