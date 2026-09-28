@@ -8,12 +8,35 @@ locals {
 
   custodian_image = coalesce(var.custodian.image, local.custodian_default_images[var.custodian.kind])
 
-  # custodian.environment, converted to the container-definition environment
-  # shape and appended after each kind's built-in entries below, so a name
-  # collision overrides the built-in value (later entry wins).
-  custodian_environment_overrides = [
-    for name, value in var.custodian.environment : { name = name, value = value }
+  # "tcp" kind sidecar env (today's watchdog), in the exact order it has
+  # always rendered in. custodian.environment overrides a built-in entry's
+  # value IN PLACE (same name, same position) rather than appending a
+  # duplicate, and any other custodian.environment entries are appended
+  # after, in map-iteration (sorted key) order. With an empty
+  # custodian.environment, custodian_tcp_environment is byte-identical to
+  # today's hard-coded list.
+  custodian_tcp_builtin_env = [
+    { name = "DNS_ZONE_ID", value = var.dns_zone_id },
+    { name = "DNS_RECORD", value = var.dns_record },
+    { name = "WATCH_IDLE", value = var.idle_seconds },
+    { name = "WATCH_TCP", value = tostring(var.custodian.tcp_port) },
+    { name = "SNS_TOPIC_ARN", value = aws_sns_topic.notifications.arn },
   ]
+
+  custodian_tcp_builtin_names = toset([for e in local.custodian_tcp_builtin_env : e.name])
+
+  custodian_tcp_environment = concat(
+    [
+      for e in local.custodian_tcp_builtin_env : {
+        name  = e.name
+        value = lookup(var.custodian.environment, e.name, e.value)
+      }
+    ],
+    [
+      for name, value in var.custodian.environment : { name = name, value = value }
+      if !contains(local.custodian_tcp_builtin_names, name)
+    ]
+  )
 
   # "minecraft" kind sidecar env (spec §4.2): built-ins merged with
   # custodian.environment (later wins), then converted below to the
@@ -28,6 +51,7 @@ locals {
       CUSTODIAN_DNS_RECORD    = var.dns_record
       CUSTODIAN_SNS_TOPIC_ARN = aws_sns_topic.notifications.arn
       CUSTODIAN_IDLE_TIMEOUT  = "${var.idle_seconds}s"
+      CUSTODIAN_GATE_TIMEOUT  = "110s"
     },
     var.custodian.environment
   )
@@ -79,33 +103,9 @@ locals {
   # Per-kind sidecar container definitions, chosen by custodian.kind below.
   watchdog_container_definitions = {
     tcp = {
-      name  = module.label_wd.id
-      image = local.custodian_image
-      environment = concat(
-        [
-          {
-            name  = "DNS_ZONE_ID"
-            value = var.dns_zone_id
-          },
-          {
-            name  = "DNS_RECORD"
-            value = var.dns_record
-          },
-          {
-            name  = "WATCH_IDLE"
-            value = var.idle_seconds
-          },
-          {
-            name  = "WATCH_TCP"
-            value = tostring(var.custodian.tcp_port)
-          },
-          {
-            name  = "SNS_TOPIC_ARN"
-            value = aws_sns_topic.notifications.arn
-          }
-        ],
-        local.custodian_environment_overrides
-      )
+      name        = module.label_wd.id
+      image       = local.custodian_image
+      environment = local.custodian_tcp_environment
       logConfiguration = {
         logDriver = "awslogs"
         options = {

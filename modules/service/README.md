@@ -13,11 +13,14 @@ on-demand workload.
   `dependsOn = [{ containerName = <sidecar>, condition = "HEALTHY" }]`, so it does not start until
   the sidecar's own health check passes; the sidecar's health check `startPeriod` is 240s (Fargate's
   allowed maximum is 300s), while its container `startTimeout`/`stopTimeout` are 120s (their own
-  Fargate-allowed maximum). The custodian's own gate timeout (`CUSTODIAN_GATE_TIMEOUT`, capped at 4
-  minutes by the custodian itself) must stay inside that 240s health-check start period. The sidecar
-  is configured entirely through `CUSTODIAN_*` environment variables (cluster, service, DNS
-  zone/record, the notifications topic, and `idle_seconds` as `CUSTODIAN_IDLE_TIMEOUT`); set
-  `custodian.environment` to override any of these or add your own.
+  Fargate-allowed maximum). Because the `HEALTHY` dependency is gated by that 120s `startTimeout`,
+  120s is the effective ceiling the custodian's own gate timeout must expire inside of — not the
+  wider 240s health-check `startPeriod`. The module sets `CUSTODIAN_GATE_TIMEOUT` to `110s` by
+  default (the custodian itself caps it at 4 minutes) to leave margin under that 120s ceiling. The
+  sidecar is configured entirely through `CUSTODIAN_*` environment variables (cluster, service, DNS
+  zone/record, the notifications topic, `idle_seconds` as `CUSTODIAN_IDLE_TIMEOUT`, and the
+  `110s` `CUSTODIAN_GATE_TIMEOUT` default); set `custodian.environment` to override any of these or
+  add your own.
 
 `custodian.image` overrides the module's pinned default image for the selected kind — leave it unset
 to use the version this module release ships with.
@@ -39,12 +42,12 @@ status topic parse custodian lifecycle JSON and would fail on a CloudWatch alarm
 your own endpoints to `alarm_topic_arn`, or list emails in `alarm_email_endpoints` and this module
 will subscribe them for you (each address still has to confirm the SNS subscription).
 
-Both topics share `sns_kms_key_id`. If you pass a customer-managed KMS key there, its key policy
-must separately grant `cloudwatch.amazonaws.com` `kms:Decrypt`/`kms:GenerateDataKey*` (this module
-does not manage the key policy) — without that grant, CloudWatch's publish to the alarm topic is
-denied. The AWS-managed `alias/aws/sns` key does not work here at all: CloudWatch alarms cannot
-publish through it, so a customer-managed key is required if you want alarms to actually notify
-anyone.
+Both topics share `sns_kms_key_id`. Alarms can notify either way: leave `sns_kms_key_id` unset
+(`null`) for an unencrypted topic, or pass a customer-managed KMS key whose key policy separately
+grants `cloudwatch.amazonaws.com` `kms:Decrypt`/`kms:GenerateDataKey*` (this module does not manage
+the key policy) — without that grant, CloudWatch's publish to the alarm topic is denied. The one key
+that never works here is the AWS-managed `alias/aws/sns`: CloudWatch alarms cannot publish through
+it, so if you want an encrypted alarm topic, use a customer-managed key, not `alias/aws/sns`.
 
 ## Reference
 
@@ -114,10 +117,10 @@ anyone.
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_additional_container_definitions"></a> [additional_container_definitions](#input_additional_container_definitions) | n/a | `list(any)` | `[]` | no |
 | <a name="input_alarm_email_endpoints"></a> [alarm_email_endpoints](#input_alarm_email_endpoints) | Email addresses to subscribe to the cost alarm's SNS topic. Each address must confirm the SNS subscription email before it will receive alarm notifications. | `list(string)` | `[]` | no |
-| <a name="input_capacity_provider"></a> [capacity_provider](#input_capacity_provider) | Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE. | `string` | `"FARGATE_SPOT"` | no |
+| <a name="input_capacity_provider"></a> [capacity_provider](#input_capacity_provider) | Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE. Changing it on an existing service may force the ECS service to be replaced; harmless while the service is parked at desired_count = 0, but plan a maintenance window if it's running. | `string` | `"FARGATE_SPOT"` | no |
 | <a name="input_context"></a> [context](#input_context) | Shared Context from Ben's terraform-null-context | <pre>object({<br/>    attributes     = list(string)<br/>    dns_namespace  = string<br/>    environment    = string<br/>    instance       = string<br/>    instance_short = string<br/>    namespace      = string<br/>    region         = string<br/>    region_short   = string<br/>    role           = string<br/>    role_short     = string<br/>    project        = string<br/>    tags           = map(string)<br/>  })</pre> | n/a | yes |
 | <a name="input_cpu_architecture"></a> [cpu_architecture](#input_cpu_architecture) | CPU architecture for the Fargate task's runtime platform. One of X86_64, ARM64. | `string` | `"X86_64"` | no |
-| <a name="input_custodian"></a> [custodian](#input_custodian) | Watchdog sidecar configuration. kind selects the custodian flavor: "tcp" (default, today's watchdog) or "minecraft". image overrides the module's pinned default image for the selected kind. tcp_port sets WATCH_TCP for kind = "tcp" (default 30000, today's hard-coded value). environment entries are appended to the sidecar's environment, so a name that collides with a built-in entry overrides it. | <pre>object({<br/>    kind        = optional(string, "tcp")<br/>    image       = optional(string)<br/>    tcp_port    = optional(number, 30000)<br/>    environment = optional(map(string), {})<br/>  })</pre> | `{}` | no |
+| <a name="input_custodian"></a> [custodian](#input_custodian) | Watchdog sidecar configuration. kind selects the custodian flavor: "tcp" (default, today's watchdog) or "minecraft". image overrides the module's pinned default image for the selected kind. tcp_port sets WATCH_TCP for kind = "tcp" (default 30000, today's hard-coded value). environment entries whose name matches a built-in entry replace its value in place; entries with any other name are appended. With environment = {} the rendered sidecar environment is unchanged from the built-ins (for kind = "tcp", byte-identical to today's). | <pre>object({<br/>    kind        = optional(string, "tcp")<br/>    image       = optional(string)<br/>    tcp_port    = optional(number, 30000)<br/>    environment = optional(map(string), {})<br/>  })</pre> | `{}` | no |
 | <a name="input_data_access_point_id"></a> [data_access_point_id](#input_data_access_point_id) | n/a | `string` | n/a | yes |
 | <a name="input_data_file_system_id"></a> [data_file_system_id](#input_data_file_system_id) | n/a | `string` | n/a | yes |
 | <a name="input_data_mount_path"></a> [data_mount_path](#input_data_mount_path) | n/a | `string` | `"/data"` | no |
@@ -128,7 +131,7 @@ anyone.
 | <a name="input_idle_seconds"></a> [idle_seconds](#input_idle_seconds) | Number of seconds of inactivity before the service is stopped. Must be between 60 and 86400 (1 minute to 24 hours). | `string` | `"600"` | no |
 | <a name="input_log_retention_days"></a> [log_retention_days](#input_log_retention_days) | Number of days to retain CloudWatch log events. Must be a valid CloudWatch Logs retention value. | `number` | `7` | no |
 | <a name="input_logs_kms_key_id"></a> [logs_kms_key_id](#input_logs_kms_key_id) | KMS key ARN or key ID to use for encrypting CloudWatch Logs. Accepts full KMS ARNs (including multi-Region mrk- keys), standalone UUID key IDs, or standalone mrk- key IDs. | `string` | n/a | yes |
-| <a name="input_max_runtime_hours"></a> [max_runtime_hours](#input_max_runtime_hours) | Maximum number of consecutive hours the service may run before the cost alarm fires. Drives the CloudWatch alarm's evaluation_periods and datapoints_to_alarm (period is fixed at 3600s/1h), so it is bounded by CloudWatch's 7-day alarm evaluation window. Must be between 1 and 168 (1 hour to 7 days). | `number` | `12` | no |
+| <a name="input_max_runtime_hours"></a> [max_runtime_hours](#input_max_runtime_hours) | Maximum number of consecutive hours the service may run before the cost alarm fires. Drives the CloudWatch alarm's evaluation_periods and datapoints_to_alarm (period is fixed at 3600s/1h), so it is bounded by CloudWatch's 7-day alarm evaluation window. Must be a whole number between 1 and 168 (1 hour to 7 days). | `number` | `12` | no |
 | <a name="input_persistence_access_policy_arn"></a> [persistence_access_policy_arn](#input_persistence_access_policy_arn) | n/a | `string` | n/a | yes |
 | <a name="input_persistence_access_security_group"></a> [persistence_access_security_group](#input_persistence_access_security_group) | n/a | `string` | `""` | no |
 | <a name="input_port_mappings"></a> [port_mappings](#input_port_mappings) | List of [Port Mappings](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PortMapping.html) | <pre>list(object({<br/>    containerPort = number<br/>    hostPort      = number<br/>    protocol      = string<br/>  }))</pre> | n/a | yes |

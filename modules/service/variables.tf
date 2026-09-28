@@ -147,7 +147,7 @@ variable "custodian" {
   })
   default     = {}
   nullable    = false
-  description = "Watchdog sidecar configuration. kind selects the custodian flavor: \"tcp\" (default, today's watchdog) or \"minecraft\". image overrides the module's pinned default image for the selected kind. tcp_port sets WATCH_TCP for kind = \"tcp\" (default 30000, today's hard-coded value). environment entries are appended to the sidecar's environment, so a name that collides with a built-in entry overrides it."
+  description = "Watchdog sidecar configuration. kind selects the custodian flavor: \"tcp\" (default, today's watchdog) or \"minecraft\". image overrides the module's pinned default image for the selected kind. tcp_port sets WATCH_TCP for kind = \"tcp\" (default 30000, today's hard-coded value). environment entries whose name matches a built-in entry replace its value in place; entries with any other name are appended. With environment = {} the rendered sidecar environment is unchanged from the built-ins (for kind = \"tcp\", byte-identical to today's)."
 
   validation {
     condition     = contains(["tcp", "minecraft"], var.custodian.kind)
@@ -176,7 +176,7 @@ variable "capacity_provider" {
   type        = string
   default     = "FARGATE_SPOT"
   nullable    = false
-  description = "Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE."
+  description = "Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE. Changing it on an existing service may force the ECS service to be replaced; harmless while the service is parked at desired_count = 0, but plan a maintenance window if it's running."
 
   validation {
     condition     = contains(["FARGATE_SPOT", "FARGATE"], var.capacity_provider)
@@ -263,7 +263,12 @@ variable "max_runtime_hours" {
   type        = number
   default     = 12
   nullable    = false
-  description = "Maximum number of consecutive hours the service may run before the cost alarm fires. Drives the CloudWatch alarm's evaluation_periods and datapoints_to_alarm (period is fixed at 3600s/1h), so it is bounded by CloudWatch's 7-day alarm evaluation window. Must be between 1 and 168 (1 hour to 7 days)."
+  description = "Maximum number of consecutive hours the service may run before the cost alarm fires. Drives the CloudWatch alarm's evaluation_periods and datapoints_to_alarm (period is fixed at 3600s/1h), so it is bounded by CloudWatch's 7-day alarm evaluation window. Must be a whole number between 1 and 168 (1 hour to 7 days)."
+
+  validation {
+    condition     = floor(var.max_runtime_hours) == var.max_runtime_hours
+    error_message = "max_runtime_hours must be a whole number (no fractional hours)."
+  }
 
   validation {
     condition     = var.max_runtime_hours >= 1 && var.max_runtime_hours <= 168
