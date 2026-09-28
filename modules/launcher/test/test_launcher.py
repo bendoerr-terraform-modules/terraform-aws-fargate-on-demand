@@ -16,15 +16,9 @@ class TestLauncherImport(unittest.TestCase):
         if "aws_launcher_lambda_function" in sys.modules:
             del sys.modules["aws_launcher_lambda_function"]
 
-    def test_missing_ecs_service_raises_valueerror(self):
-        """Test that importing without ECS_SERVICE raises ValueError."""
-        # Set up environment with all required vars except ECS_SERVICE
-        test_env = {
-            "ECS_REGION": "us-east-1",
-            "ECS_CLUSTER": "test-cluster",
-            # ECS_SERVICE is intentionally missing
-        }
-
+    def _assert_missing_var_raises(self, test_env, missing_var_message):
+        """Import the launcher module with test_env and assert it raises
+        ValueError whose message contains missing_var_message."""
         # Stub boto3 to avoid needing it installed
         sys.modules["boto3"] = MagicMock()
 
@@ -52,7 +46,7 @@ class TestLauncherImport(unittest.TestCase):
             with self.assertRaises(ValueError) as context:
                 spec.loader.exec_module(module)
 
-            self.assertIn("missing ECS_SERVICE", str(context.exception))
+            self.assertIn(missing_var_message, str(context.exception))
 
         finally:
             # Restore original environment
@@ -61,6 +55,39 @@ class TestLauncherImport(unittest.TestCase):
             # Clean up the module
             if "aws_launcher_lambda_function" in sys.modules:
                 del sys.modules["aws_launcher_lambda_function"]
+
+    def test_missing_ecs_service_raises_valueerror(self):
+        """Test that importing without ECS_SERVICE raises ValueError."""
+        self._assert_missing_var_raises(
+            {
+                "ECS_REGION": "us-east-1",
+                "ECS_CLUSTER": "test-cluster",
+                # ECS_SERVICE is intentionally missing
+            },
+            "missing ECS_SERVICE",
+        )
+
+    def test_missing_ecs_region_raises_valueerror(self):
+        """Test that importing without ECS_REGION raises ValueError."""
+        self._assert_missing_var_raises(
+            {
+                # ECS_REGION is intentionally missing
+                "ECS_CLUSTER": "test-cluster",
+                "ECS_SERVICE": "test-service",
+            },
+            "missing ECS_REGION",
+        )
+
+    def test_missing_ecs_cluster_raises_valueerror(self):
+        """Test that importing without ECS_CLUSTER raises ValueError."""
+        self._assert_missing_var_raises(
+            {
+                "ECS_REGION": "us-east-1",
+                # ECS_CLUSTER is intentionally missing
+                "ECS_SERVICE": "test-service",
+            },
+            "missing ECS_CLUSTER",
+        )
 
     def test_all_required_vars_imports_cleanly(self):
         """Test that importing with all required vars succeeds."""
@@ -98,8 +125,17 @@ class TestLauncherImport(unittest.TestCase):
             # This should not raise an exception
             spec.loader.exec_module(module)
 
-            # Verify lambda_handler is defined
-            self.assertTrue(hasattr(module, "lambda_handler"))
+            # lambda_handler is a real callable, not just a name that
+            # happens to exist on the module.
+            self.assertTrue(callable(module.lambda_handler))
+
+            # The module-level config it reads at import time (and that
+            # lambda_handler closes over) came from the env vars we set,
+            # not some hard-coded or stale value.
+            self.assertEqual(module.ecs_region, "us-east-1")
+            self.assertEqual(module.ecs_cluster, "test-cluster")
+            self.assertEqual(module.ecs_service, "test-service")
+            self.assertEqual(module.desired_count, 1)  # default, DESIRED_COUNT unset
 
         finally:
             # Restore original environment
