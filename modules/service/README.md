@@ -65,8 +65,10 @@ if you want an encrypted alarm topic, use a customer-managed key, not `alias/aws
 ## Deployment settings
 
 The ECS service is always created with `deployment_maximum_percent = 100` and
-`deployment_minimum_healthy_percent = 0`, for every `custodian.kind`. That means a deployment never
-runs two tasks at once against the same EFS data — the EFS volume has a single writer at all times.
+`deployment_minimum_healthy_percent = 0`, for every `custodian.kind`. That means a deployment of
+this service never runs two of its tasks at once. It is a per-service guarantee, not an EFS-wide one:
+if several services mount the same file system or access point, keeping one writer per world is up to
+you (give each service its own data path).
 The trade-off: rolling out a new task definition while the service is actively running (a nonzero
 desired count) stops the running task before starting the replacement, a brief outage, rather than
 briefly running two tasks (and so two servers) against the same world/data. This is not configurable.
