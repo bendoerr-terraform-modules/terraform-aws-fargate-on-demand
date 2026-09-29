@@ -28,7 +28,7 @@ if ecs_region is None:
 if ecs_cluster is None:
     raise ValueError("missing ECS_CLUSTER environment variable")
 
-if ecs_cluster is None:
+if ecs_service is None:
     raise ValueError("missing ECS_SERVICE environment variable")
 
 # Print the current configuration

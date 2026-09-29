@@ -2,6 +2,11 @@ variable "namespace" {
   type = string
 }
 
+variable "backup_enabled" {
+  type    = bool
+  default = true
+}
+
 module "context" {
   source      = "git@github.com:bendoerr-terraform-modules/terraform-null-context?ref=v0.5.2"
   namespace   = var.namespace

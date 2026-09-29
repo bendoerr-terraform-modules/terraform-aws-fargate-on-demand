@@ -138,6 +138,52 @@ variable "service_image" {
   default = ""
 }
 
+variable "custodian" {
+  type = object({
+    kind        = optional(string, "tcp")
+    image       = optional(string)
+    tcp_port    = optional(number, 30000)
+    environment = optional(map(string), {})
+  })
+  default     = {}
+  nullable    = false
+  description = "Watchdog sidecar configuration. kind selects the custodian flavor: \"tcp\" (default, today's watchdog) or \"minecraft\". image overrides the module's pinned default image for the selected kind. tcp_port sets WATCH_TCP for kind = \"tcp\" (default 30000, today's hard-coded value). environment entries whose name matches a built-in entry replace its value in place; entries with any other name are appended. With environment = {} the rendered sidecar environment is unchanged from the built-ins (for kind = \"tcp\", byte-identical to today's)."
+
+  validation {
+    condition     = contains(["tcp", "minecraft"], var.custodian.kind)
+    error_message = "custodian.kind must be one of: tcp, minecraft."
+  }
+
+  validation {
+    condition     = var.custodian.tcp_port >= 1 && var.custodian.tcp_port <= 65535
+    error_message = "custodian.tcp_port must be between 1 and 65535."
+  }
+}
+
+variable "cpu_architecture" {
+  type        = string
+  default     = "X86_64"
+  nullable    = false
+  description = "CPU architecture for the Fargate task's runtime platform. One of X86_64, ARM64."
+
+  validation {
+    condition     = contains(["X86_64", "ARM64"], var.cpu_architecture)
+    error_message = "cpu_architecture must be one of: X86_64, ARM64."
+  }
+}
+
+variable "capacity_provider" {
+  type        = string
+  default     = "FARGATE_SPOT"
+  nullable    = false
+  description = "Capacity provider for the ECS service's capacity provider strategy. One of FARGATE_SPOT, FARGATE. Changing it on an existing service may force the ECS service to be replaced; harmless while the service is parked at desired_count = 0, but plan a maintenance window if it's running."
+
+  validation {
+    condition     = contains(["FARGATE_SPOT", "FARGATE"], var.capacity_provider)
+    error_message = "capacity_provider must be one of: FARGATE_SPOT, FARGATE."
+  }
+}
+
 variable "dns_zone_id" {
   type        = string
   description = ""
@@ -211,6 +257,37 @@ variable "logs_kms_key_id" {
     condition     = var.logs_kms_key_id == null || can(regex("^(arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\\d{12}:key/(mrk-[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12})|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|mrk-[A-Fa-f0-9]{32})$", var.logs_kms_key_id))
     error_message = "logs_kms_key_id must be a valid KMS key ARN or key ID (UUID or multi-Region mrk- format)."
   }
+}
+
+variable "alarm_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Whether to create the cost alarm's SNS topic (and its policy/subscriptions) and the CloudWatch max-runtime alarm itself. When false, none of those resources are created and alarm_topic_arn is null."
+}
+
+variable "max_runtime_hours" {
+  type        = number
+  default     = 12
+  nullable    = false
+  description = "Maximum number of consecutive hours the service may run before the cost alarm fires. Drives the CloudWatch alarm's evaluation_periods and datapoints_to_alarm (period is fixed at 3600s/1h), so it is bounded by CloudWatch's 7-day alarm evaluation window. Must be a whole number between 1 and 168 (1 hour to 7 days)."
+
+  validation {
+    condition     = floor(var.max_runtime_hours) == var.max_runtime_hours
+    error_message = "max_runtime_hours must be a whole number (no fractional hours)."
+  }
+
+  validation {
+    condition     = var.max_runtime_hours >= 1 && var.max_runtime_hours <= 168
+    error_message = "max_runtime_hours must be between 1 and 168 (1 hour to 7 days)."
+  }
+}
+
+variable "alarm_email_endpoints" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Email addresses to subscribe to the cost alarm's SNS topic. Each address must confirm the SNS subscription email before it will receive alarm notifications."
 }
 
 variable "sns_kms_key_id" {

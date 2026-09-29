@@ -50,6 +50,7 @@ jobs:
             acm.us-east-1.amazonaws.com:443
             apigateway.us-east-1.amazonaws.com:443
             api.github.com:443
+            backup.us-east-1.amazonaws.com:443
             budgets.amazonaws.com:443
             checkpoint-api.hashicorp.com:443
             cloudfront.amazonaws.com:443
@@ -75,6 +76,7 @@ jobs:
             kms.us-west-2.amazonaws.com:443
             lambda.us-east-1.amazonaws.com:443
             logs.us-east-1.amazonaws.com:443
+            monitoring.us-east-1.amazonaws.com:443
             objects.githubusercontent.com:443
             proxy.golang.org:443
             raw.githubusercontent.com:443
@@ -141,3 +143,32 @@ jobs:
         if: always() && hashFiles(format('{0}/results.xml', matrix.project)) != ''
         with:
           paths: ${{ matrix.project }}/results.xml
+
+  launcher-python-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: "Harden Runner"
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:22
+            github.com:443
+            raw.githubusercontent.com:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+
+      - name: "Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: "Setup Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: "Run Launcher Python Tests"
+        shell: bash
+        run: python3 -m unittest discover -s modules/launcher/test -p 'test_*.py' -v

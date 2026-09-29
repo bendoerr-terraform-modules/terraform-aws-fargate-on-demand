@@ -3,6 +3,9 @@
 Lambda + CloudWatch subscription filter that scales an ECS service up on inbound traffic and
 idles it back to zero — the entry point for the on-demand Fargate pattern.
 
+The Lambda's default runtime is `python3.13` (`lambda_python_runtime`); override it if you need to
+pin to a different supported Python runtime.
+
 ## Reference
 
 <!-- BEGIN_TF_DOCS -->
@@ -26,9 +29,9 @@ idles it back to zero — the entry point for the on-demand Fargate pattern.
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_label_ecs_svc_update"></a> [label_ecs_svc_update](#module_label_ecs_svc_update) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_launcher"></a> [label_launcher](#module_label_launcher) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
-| <a name="module_label_launcher_logs"></a> [label_launcher_logs](#module_label_launcher_logs) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.1 |
+| <a name="module_label_ecs_svc_update"></a> [label_ecs_svc_update](#module_label_ecs_svc_update) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_launcher"></a> [label_launcher](#module_label_launcher) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_launcher_logs"></a> [label_launcher_logs](#module_label_launcher_logs) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
 
 ### Resources
 
@@ -62,7 +65,7 @@ idles it back to zero — the entry point for the on-demand Fargate pattern.
 | <a name="input_lambda_env_kms_arn"></a> [lambda_env_kms_arn](#input_lambda_env_kms_arn) | n/a | `string` | `null` | no |
 | <a name="input_lambda_logs_kms_arn"></a> [lambda_logs_kms_arn](#input_lambda_logs_kms_arn) | n/a | `string` | `null` | no |
 | <a name="input_lambda_logs_retention"></a> [lambda_logs_retention](#input_lambda_logs_retention) | Number of days to keep logs from the AWS Lambda launcher | `number` | `3` | no |
-| <a name="input_lambda_python_runtime"></a> [lambda_python_runtime](#input_lambda_python_runtime) | Overwrite the AWS Lambda python runtime | `string` | `"python3.11"` | no |
+| <a name="input_lambda_python_runtime"></a> [lambda_python_runtime](#input_lambda_python_runtime) | Overwrite the AWS Lambda python runtime | `string` | `"python3.13"` | no |
 | <a name="input_lambda_timeout"></a> [lambda_timeout](#input_lambda_timeout) | Timeout in seconds of the Launcher Lambda, there shouldn't be a huge reason to change thi.s | `number` | `3` | no |
 | <a name="input_lambda_tracing_config"></a> [lambda_tracing_config](#input_lambda_tracing_config) | X-Ray Lambda Tracing Mode | `string` | `"Active"` | no |
 | <a name="input_trigger_cloudwatch_group"></a> [trigger_cloudwatch_group](#input_trigger_cloudwatch_group) | n/a | `string` | n/a | yes |

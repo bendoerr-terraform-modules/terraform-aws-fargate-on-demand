@@ -19,6 +19,10 @@ output "events_topic_arn" {
   value = aws_sns_topic.notifications.arn
 }
 
+output "alarm_topic_arn" {
+  value = var.alarm_enabled ? aws_sns_topic.alarms[0].arn : null
+}
+
 output "service_role_name" {
   value = aws_iam_role.svc.name
 }

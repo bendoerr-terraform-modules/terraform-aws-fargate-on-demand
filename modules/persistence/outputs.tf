@@ -37,3 +37,13 @@ output "owner_uid" {
   value       = var.owner_uid
   description = "TODO"
 }
+
+output "backup_vault_arn" {
+  value       = var.backup_enabled ? aws_backup_vault.data[0].arn : null
+  description = "ARN of the AWS Backup vault protecting the EFS file system. Null when backup_enabled is false."
+}
+
+output "backup_plan_id" {
+  value       = var.backup_enabled ? aws_backup_plan.data[0].id : null
+  description = "ID of the AWS Backup plan protecting the EFS file system. Null when backup_enabled is false."
+}

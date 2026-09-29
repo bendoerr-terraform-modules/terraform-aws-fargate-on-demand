@@ -5,10 +5,11 @@ module "label_data" {
 }
 
 resource "aws_efs_file_system" "data" {
-  creation_token = module.label_data.id
-  tags           = module.label_data.tags
-  encrypted      = true
-  kms_key_id     = var.kms_efs_arn != null ? var.kms_efs_arn : data.aws_kms_alias.efs.target_key_arn
+  creation_token  = module.label_data.id
+  tags            = module.label_data.tags
+  encrypted       = true
+  kms_key_id      = var.kms_efs_arn != null ? var.kms_efs_arn : data.aws_kms_alias.efs.target_key_arn
+  throughput_mode = var.throughput_mode
 }
 
 data "aws_kms_alias" "efs" {
