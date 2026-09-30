@@ -18,6 +18,11 @@ Configuration via Environment Variables
 import json
 import os
 import boto3
+from botocore.config import Config
+
+# The launch notice is best effort and the Lambda times out after a few seconds
+# (botocore defaults to 60 s timeouts plus retries), so bound the SNS call tightly.
+SNS_CONFIG = Config(connect_timeout=1, read_timeout=1, retries={"max_attempts": 1})
 
 # Load the environment variables
 ecs_region = os.environ.get('ECS_REGION', None)
@@ -80,7 +85,7 @@ def publish_launch_event():
         "Topic": events_topic_arn,
     }
     try:
-        sns = boto3.client('sns', region_name=ecs_region)
+        sns = boto3.client('sns', region_name=ecs_region, config=SNS_CONFIG)
         sns.publish(TopicArn=events_topic_arn, Message=json.dumps(message))
         print(f"[launcher] published launch event to '{events_topic_arn}'")
     except Exception as err:  # pylint: disable=broad-except

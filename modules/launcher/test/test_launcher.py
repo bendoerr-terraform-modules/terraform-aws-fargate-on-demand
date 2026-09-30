@@ -8,6 +8,14 @@ import unittest
 from unittest.mock import MagicMock
 
 
+def stub_aws_sdk():
+    """Stubs boto3 and botocore.config (not installed in CI) before importing the launcher."""
+    sys.modules["boto3"] = MagicMock()
+    botocore_config = MagicMock()
+    sys.modules["botocore"] = MagicMock(config=botocore_config)
+    sys.modules["botocore.config"] = botocore_config
+
+
 class TestLauncherImport(unittest.TestCase):
     """Test that the launcher module validates environment variables at import time."""
 
@@ -20,8 +28,8 @@ class TestLauncherImport(unittest.TestCase):
     def _assert_missing_var_raises(self, test_env, missing_var_message):
         """Import the launcher module with test_env and assert it raises
         ValueError whose message contains missing_var_message."""
-        # Stub boto3 to avoid needing it installed
-        sys.modules["boto3"] = MagicMock()
+        # Stub the AWS SDK (not installed in CI)
+        stub_aws_sdk()
 
         # Clear the launcher module from sys.modules
         if "aws_launcher_lambda_function" in sys.modules:
@@ -99,8 +107,8 @@ class TestLauncherImport(unittest.TestCase):
             "ECS_SERVICE": "test-service",
         }
 
-        # Stub boto3 to avoid needing it installed
-        sys.modules["boto3"] = MagicMock()
+        # Stub the AWS SDK (not installed in CI)
+        stub_aws_sdk()
 
         # Clear the launcher module from sys.modules
         if "aws_launcher_lambda_function" in sys.modules:
@@ -158,8 +166,19 @@ class TestLauncherHandler(unittest.TestCase):
         ecs.describe_services.return_value = {"services": [{"desiredCount": desired_count}]}
         sns = MagicMock()
         boto3 = MagicMock()
-        boto3.client.side_effect = lambda name, **_: {"ecs": ecs, "sns": sns}[name]
+        self.client_kwargs = {}
+
+        def client(name, **kwargs):
+            self.client_kwargs[name] = kwargs
+            return {"ecs": ecs, "sns": sns}[name]
+
+        boto3.client.side_effect = client
         sys.modules["boto3"] = boto3
+        # botocore.config.Config records its kwargs so tests can check the SNS bounds.
+        botocore_config = MagicMock()
+        botocore_config.Config.side_effect = lambda **kwargs: ("Config", kwargs)
+        sys.modules["botocore"] = MagicMock(config=botocore_config)
+        sys.modules["botocore.config"] = botocore_config
         if "aws_launcher_lambda_function" in sys.modules:
             del sys.modules["aws_launcher_lambda_function"]
 
@@ -195,6 +214,17 @@ class TestLauncherHandler(unittest.TestCase):
             json.loads(kwargs["Message"]),
             {"Event": "launch", "Cluster": "test-cluster", "Service": "test-service", "Topic": topic},
         )
+
+    def test_sns_call_is_bounded_well_inside_the_lambda_timeout(self):
+        module, _, _ = self._load({"EVENTS_TOPIC_ARN": "arn:aws:sns:us-east-1:111111111111:events"}, desired_count=0)
+
+        module.lambda_handler({}, None)
+
+        kind, config = self.client_kwargs["sns"]["config"]
+        self.assertEqual(kind, "Config")
+        self.assertLessEqual(config["connect_timeout"], 1)
+        self.assertLessEqual(config["read_timeout"], 1)
+        self.assertEqual(config["retries"], {"max_attempts": 1})
 
     def test_already_running_neither_scales_nor_publishes(self):
         module, ecs, sns = self._load({"EVENTS_TOPIC_ARN": "arn:aws:sns:us-east-1:111111111111:events"}, desired_count=1)
