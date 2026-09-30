@@ -51,9 +51,11 @@ discord_colors = {
     "fuchsia": 15418782,
     "blurple": 5793266,
     "red": 15548997,
+    "orange": 15105570,
 }
 
 event_colors = {
+    "launch": "orange",
     "start": "green",
     "active": "blurple",
     "inactive": "yellow",
@@ -62,6 +64,7 @@ event_colors = {
 }
 
 event_titles = {
+    "launch": "Starting Up",
     "start": "Started Container",
     "active": "Active Use",
     "inactive": "Inactive",
@@ -70,6 +73,7 @@ event_titles = {
 }
 
 event_descriptions = {
+    "launch": "Someone is connecting. The application will be ready in a minute or two.",
     "start": "The application has started up and is ready to use!",
     "active": "The application currently has active use!",
     "inactive": "The application has become inactive and will shutdown soon!",

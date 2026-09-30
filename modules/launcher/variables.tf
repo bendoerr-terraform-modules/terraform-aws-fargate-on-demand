@@ -35,6 +35,14 @@ variable "trigger_cloudwatch_group" {
   description = ""
 }
 
+variable "launch_events" {
+  type = object({
+    topic_arn = string
+  })
+  default     = null
+  description = "Publish a \"launch\" event to topic_arn (e.g. the service module's events_topic_arn) when the launcher scales the service up from zero. An object so it can be set from a topic created in the same apply. Null disables the event."
+}
+
 variable "trigger_filter_pattern" {
   type        = string
   default     = ""
