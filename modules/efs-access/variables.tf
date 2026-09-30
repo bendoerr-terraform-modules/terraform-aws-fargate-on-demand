@@ -61,8 +61,8 @@ variable "mount_path" {
 
 variable "instance_type" {
   type        = string
-  default     = "t4g.nano"
-  description = "Instance type for the helper. Defaults to the cheapest current-gen Graviton (arm64) size; keep it arm64 to match the default AL2023 arm64 AMI."
+  default     = "t4g.micro"
+  description = "Instance type for the helper. Defaults to t4g.micro: on t4g.nano (512 MB) dnf is OOM-killed installing amazon-efs-utils and the EFS mount never happens. Keep it arm64 to match the default AL2023 arm64 AMI."
 }
 
 variable "root_volume_size" {
