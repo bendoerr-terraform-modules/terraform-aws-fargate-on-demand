@@ -3,7 +3,7 @@ resource "aws_ecs_service" "svc" {
   tags = module.label.tags
 
   cluster         = aws_ecs_cluster.svc.id
-  task_definition = aws_ecs_task_definition.svc.family
+  task_definition = aws_ecs_task_definition.svc.arn
 
   desired_count    = 0
   platform_version = "LATEST"
