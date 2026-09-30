@@ -57,7 +57,7 @@ aws ssm start-session --target <instance_id>
 For file clients, add an SSH key to `ssh_authorized_keys` and put this in `~/.ssh/config` (needs the
 `session-manager-plugin` locally):
 
-```
+```text
 Host efs-helper
   HostName <instance_id>
   User ec2-user
@@ -92,9 +92,9 @@ See [`examples/complete`](./examples/complete) for a full wiring of VPC + `persi
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_label"></a> [label](#module_label) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.0 |
-| <a name="module_label_egress"></a> [label_egress](#module_label_egress) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.0 |
-| <a name="module_label_transfer"></a> [label_transfer](#module_label_transfer) | git@github.com:bendoerr-terraform-modules/terraform-null-label | v1.0.0 |
+| <a name="module_label"></a> [label](#module_label) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_egress"></a> [label_egress](#module_label_egress) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
+| <a name="module_label_transfer"></a> [label_transfer](#module_label_transfer) | `git@github.com:bendoerr-terraform-modules/terraform-null-label` | v1.0.1 |
 
 ### Resources
 

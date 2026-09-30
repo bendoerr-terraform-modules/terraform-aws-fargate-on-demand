@@ -5,8 +5,9 @@ module "label_events" {
 }
 
 resource "aws_sns_topic" "events" {
-  name = module.label_events.id
-  tags = module.label_events.tags
+  name              = module.label_events.id
+  tags              = module.label_events.tags
+  kms_master_key_id = "alias/aws/sns"
 }
 
 module "launcher" {
