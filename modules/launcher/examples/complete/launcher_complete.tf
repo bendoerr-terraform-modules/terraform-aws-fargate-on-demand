@@ -4,6 +4,10 @@ module "label_events" {
   name    = "events"
 }
 
+# Encrypted with the AWS-managed alias/aws/sns key: the only publisher is the
+# launcher's own IAM role, which can use it. The org doesn't use CMKs, so
+# AWS-0136 (customer-managed key) is suppressed rather than satisfied.
+# trivy:ignore:AVD-AWS-0136
 resource "aws_sns_topic" "events" {
   name              = module.label_events.id
   tags              = module.label_events.tags
