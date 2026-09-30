@@ -10,8 +10,12 @@ Configuration via Environment Variables
  ECS_CLUSTER    (required) The name of the ECS Cluster
  ECS_SERVICE    (required) The name of the ECS Service
  DESIRED_COUNT  (default: 1) The count of tasks to update to
+ EVENTS_TOPIC_ARN (optional) SNS topic that receives a "launch" event when the
+                service is scaled up from zero (same message shape as the
+                custodian's events: Event, Cluster, Service, Topic)
 
 """
+import json
 import os
 import boto3
 
@@ -20,6 +24,7 @@ ecs_region = os.environ.get('ECS_REGION', None)
 ecs_cluster = os.environ.get('ECS_CLUSTER', None)
 ecs_service = os.environ.get('ECS_SERVICE', None)
 desired_count = os.environ.get('DESIRED_COUNT', 1)
+events_topic_arn = os.environ.get('EVENTS_TOPIC_ARN') or None
 
 # Validate required variables
 if ecs_region is None:
@@ -36,6 +41,7 @@ print(f"[launcher] ECS_REGION   = '{ecs_region}'")
 print(f"[launcher] ECS_CLUSTER  = '{ecs_cluster}'")
 print(f"[launcher] ECS_SERVICE  = '{ecs_service}'")
 print(f"[launcher] DESIRED_COUNT= '{desired_count}'")
+print(f"[launcher] EVENTS_TOPIC_ARN= '{events_topic_arn}'")
 
 
 def lambda_handler(event, context):
@@ -56,5 +62,26 @@ def lambda_handler(event, context):
             desiredCount=desired_count,
         )
         print(f"[launcher] updated service '{ecs_service}' desired task count: '{desired_count}'")
+        publish_launch_event()
     else:
         print(f"[launcher] service '{ecs_service}' desired task count already greater than zero")
+
+
+def publish_launch_event():
+    """Announces the launch on the events topic, if configured. Best effort:
+    a failed notice must never undo or fail the launch itself."""
+    if events_topic_arn is None:
+        return
+
+    message = {
+        "Event": "launch",
+        "Cluster": ecs_cluster,
+        "Service": ecs_service,
+        "Topic": events_topic_arn,
+    }
+    try:
+        sns = boto3.client('sns', region_name=ecs_region)
+        sns.publish(TopicArn=events_topic_arn, Message=json.dumps(message))
+        print(f"[launcher] published launch event to '{events_topic_arn}'")
+    except Exception as err:  # pylint: disable=broad-except
+        print(f"[launcher] failed to publish launch event: {err}")

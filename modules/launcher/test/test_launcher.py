@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for aws-launcher-lambda-function.py"""
 import importlib.util
+import json
 import os
 import sys
 import unittest
@@ -144,6 +145,80 @@ class TestLauncherImport(unittest.TestCase):
             # Clean up the module
             if "aws_launcher_lambda_function" in sys.modules:
                 del sys.modules["aws_launcher_lambda_function"]
+
+
+
+class TestLauncherHandler(unittest.TestCase):
+    """lambda_handler scales the service from zero and announces the launch."""
+
+    def _load(self, extra_env, desired_count):
+        """Import the launcher with a fake boto3 whose ECS service reports
+        desired_count; returns (module, ecs_client, sns_client)."""
+        ecs = MagicMock()
+        ecs.describe_services.return_value = {"services": [{"desiredCount": desired_count}]}
+        sns = MagicMock()
+        boto3 = MagicMock()
+        boto3.client.side_effect = lambda name, **_: {"ecs": ecs, "sns": sns}[name]
+        sys.modules["boto3"] = boto3
+        if "aws_launcher_lambda_function" in sys.modules:
+            del sys.modules["aws_launcher_lambda_function"]
+
+        env = {"ECS_REGION": "us-east-1", "ECS_CLUSTER": "test-cluster", "ECS_SERVICE": "test-service", **extra_env}
+        self._original_env = os.environ.copy()
+        self.addCleanup(self._restore_env)
+        os.environ.clear()
+        os.environ.update(env)
+
+        spec = importlib.util.spec_from_file_location(
+            "aws_launcher_lambda_function",
+            os.path.join(os.path.dirname(__file__), "../aws-launcher-lambda-function.py"),
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module, ecs, sns
+
+    def _restore_env(self):
+        os.environ.clear()
+        os.environ.update(self._original_env)
+
+    def test_launch_from_zero_publishes_launch_event(self):
+        topic = "arn:aws:sns:us-east-1:111111111111:events"
+        module, ecs, sns = self._load({"EVENTS_TOPIC_ARN": topic}, desired_count=0)
+
+        module.lambda_handler({}, None)
+
+        ecs.update_service.assert_called_once_with(cluster="test-cluster", service="test-service", desiredCount=1)
+        sns.publish.assert_called_once()
+        kwargs = sns.publish.call_args.kwargs
+        self.assertEqual(kwargs["TopicArn"], topic)
+        self.assertEqual(
+            json.loads(kwargs["Message"]),
+            {"Event": "launch", "Cluster": "test-cluster", "Service": "test-service", "Topic": topic},
+        )
+
+    def test_already_running_neither_scales_nor_publishes(self):
+        module, ecs, sns = self._load({"EVENTS_TOPIC_ARN": "arn:aws:sns:us-east-1:111111111111:events"}, desired_count=1)
+
+        module.lambda_handler({}, None)
+
+        ecs.update_service.assert_not_called()
+        sns.publish.assert_not_called()
+
+    def test_no_topic_scales_without_publishing(self):
+        module, ecs, sns = self._load({}, desired_count=0)
+
+        module.lambda_handler({}, None)
+
+        ecs.update_service.assert_called_once()
+        sns.publish.assert_not_called()
+
+    def test_publish_failure_does_not_undo_the_launch(self):
+        module, ecs, sns = self._load({"EVENTS_TOPIC_ARN": "arn:aws:sns:us-east-1:111111111111:events"}, desired_count=0)
+        sns.publish.side_effect = RuntimeError("sns down")
+
+        module.lambda_handler({}, None)  # must not raise
+
+        ecs.update_service.assert_called_once()
 
 
 if __name__ == "__main__":
