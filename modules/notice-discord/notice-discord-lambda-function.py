@@ -21,19 +21,13 @@ if discord_bot_auth_token is None:
 if discord_channel_id is None:
     raise ValueError("missing DISCORD_CHANNEL_ID environment variable")
 
-# Create a printable representation of the auth token for logs
-printable_auth_token = ""
-if discord_bot_auth_token.startswith("param:"):
-    printable_auth_token = discord_bot_auth_token
-else:
-    printable_auth_token = (
-            discord_bot_auth_token[:3]
-            + ("*" * (len(discord_bot_auth_token) - 5))
-            + discord_bot_auth_token[-2:]
-    )
+# Log only the token SOURCE, never token-derived material: a masked token still
+# leaks characters and length, and the param: form would reveal the SSM path.
+# (Same rule as notice-github.)
+token_source = "ssm-parameter" if discord_bot_auth_token.startswith("param:") else "literal-env"
 
 # Print the current configuration
-print(f"[notice-discord] DISCORD_BOT_AUTH_TOKEN = '{printable_auth_token}'")
+print(f"[notice-discord] DISCORD_BOT_AUTH_TOKEN_SRC = '{token_source}'")
 print(f"[notice-discord] DISCORD_CHANNEL_ID     = '{discord_channel_id}'")
 print(f"[notice-discord] NOTIFY_APP_NAME        = '{notify_app_name}'")
 print(f"[notice-discord] NOTIFY_APP_URL         = '{notify_app_url}'")
