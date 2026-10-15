@@ -125,8 +125,8 @@ resource "aws_cloudwatch_metric_alarm" "errors" {
   evaluation_periods  = 1
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  # An event signal, not a state: every failed attempt pages, and the alarm returns to OK
-  # silently. No ok_actions, because an OK would read as "resolved" when it only means "no
+  # An event signal, not a state: a failure pages, and the alarm returns to OK silently
+  # once a 300 s window passes without one. No ok_actions, because an OK would read as "resolved" when it only means "no
   # invocations since" (and a new alarm's first OK would page for nothing). A revoked token
   # fails every later notification, so it pages again on the next failure after a quiet
   # period; a burst inside one 300 s window (or spanning its retries) pages once.
