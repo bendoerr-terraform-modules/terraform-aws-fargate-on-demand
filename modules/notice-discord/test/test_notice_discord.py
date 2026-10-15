@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import sys
 import unittest
 import urllib.error
@@ -21,10 +22,12 @@ BASE_ENV = {
 }
 
 
-def _load(env, ssm_value=CANARY):
+def _load(env, ssm_value=CANARY, ssm_error=None):
     """Import the lambda under env; return (module, everything it printed at import)."""
     boto3 = MagicMock()
     boto3.client.return_value.get_parameter.return_value = {"Parameter": {"Value": ssm_value}}
+    if ssm_error is not None:
+        boto3.client.return_value.get_parameter.side_effect = ssm_error
     sys.modules["boto3"] = boto3
     os.environ.update(env)
     spec = importlib.util.spec_from_file_location(
@@ -174,8 +177,9 @@ class TestDeliveryFailureNeverLogsTheToken(unittest.TestCase):
         out, raised, _ = self._run(ValueError(f"Invalid header value b'Bot {CANARY}\\n'"))
         self.assertIsNotNone(raised)
         self.assertNotIn(CANARY, str(raised))
+        # not merely suppressed: any handler that walks __context__ must find nothing
         self.assertIsNone(raised.__cause__)
-        self.assertTrue(raised.__suppress_context__)
+        self.assertIsNone(raised.__context__)
         self.assertNotIn(CANARY, out)
         self.assertIn("ValueError", out)
 
@@ -185,7 +189,20 @@ class TestDeliveryFailureNeverLogsTheToken(unittest.TestCase):
         with patch.object(self.module.urllib.request, "urlopen", return_value=response) as urlopen, \
                 contextlib.redirect_stdout(io.StringIO()):
             self.module.handler(self.EVENT, None)
-        self.assertLess(urlopen.call_args.kwargs["timeout"], 10)
+        with open(os.path.join(os.path.dirname(__file__), "../main.tf")) as f:
+            function_timeout = int(re.search(r"^\s*timeout\s*=\s*(\d+)", f.read(), re.M).group(1))
+        # urlopen's timeout is per socket operation (connect, then each read), so leave room for two
+        self.assertLess(2 * urlopen.call_args.kwargs["timeout"], function_timeout)
+
+    def test_accepted_message_with_unreadable_response_is_not_retried(self):
+        # Discord answered 2xx, so the message is posted; a retry would post a duplicate
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b"not json"
+        out = io.StringIO()
+        with patch.object(self.module.urllib.request, "urlopen", return_value=response), \
+                contextlib.redirect_stdout(out):
+            self.module.handler(self.EVENT, None)
+        self.assertIn("accepted", out.getvalue())
 
     def test_http_error_logs_the_payload_for_diagnosis(self):
         out, _, _ = self._run(_http_error(400, "Bad Request"))
@@ -203,6 +220,20 @@ class TestTokenIsNormalised(unittest.TestCase):
     def test_literal_token_whitespace_is_stripped(self):
         module, _ = _load({**BASE_ENV, "DISCORD_BOT_AUTH_TOKEN": CANARY + "\n"})
         self.assertEqual(module.discord_bot_auth_token, CANARY)
+
+    def test_param_name_whitespace_is_stripped(self):
+        module, _ = _load({**BASE_ENV, "DISCORD_BOT_AUTH_TOKEN": " param:" + PARAM_PATH + "\n"})
+        self.assertEqual(module.token_source, "ssm-parameter")
+        self.assertEqual(sys.modules["boto3"].client.return_value.get_parameter.call_args.kwargs["Name"], PARAM_PATH)
+
+    def test_ssm_failure_never_logs_the_parameter_path(self):
+        out = io.StringIO()
+        with self.assertRaises(Exception) as ctx, contextlib.redirect_stdout(out):
+            _load({**BASE_ENV, "DISCORD_BOT_AUTH_TOKEN": "param:" + PARAM_PATH},
+                  ssm_error=RuntimeError(f"AccessDenied on arn:aws:ssm:us-east-1:1:parameter{PARAM_PATH}"))
+        self.assertNotIn(PARAM_PATH, str(ctx.exception))
+        self.assertIsNone(ctx.exception.__context__)
+        self.assertNotIn(PARAM_PATH, out.getvalue())
 
     def test_ssm_token_whitespace_is_stripped(self):
         # values pasted into SSM commonly carry a trailing newline

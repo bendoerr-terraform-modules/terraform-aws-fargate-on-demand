@@ -6,9 +6,11 @@ per event to DISCORD_CHANNEL_ID as a bot.
 The bot token is supplied either literally or as ``param:<ssm-name>``; in the SSM
 form it is fetched once at cold start with decryption. Only the token's SOURCE is
 ever logged, and delivery errors are logged without the request (its headers carry
-the token). Every delivery failure is re-raised, so Lambda's async retries (2)
-apply and the Errors metric sees it; a revoked token (401) is loud, not dropped.
-Retrying a 5xx can duplicate a message Discord did accept; acceptable here.
+the token), and no raised exception carries the token or the SSM path. Every
+delivery Discord did not accept is re-raised, so Lambda's async retries (2) apply
+and the Errors metric sees it; a revoked token (401) is loud, not dropped. Once
+Discord answers 2xx nothing is raised, so a retry cannot post a duplicate (a 5xx
+after Discord did accept can still duplicate; acceptable for a notifier).
 
 Discord embed limits: https://stackoverflow.com/a/67224684/84423
 """
@@ -29,6 +31,10 @@ notify_app_url = os.environ.get("NOTIFY_APP_URL", "https://example.com")
 if discord_bot_auth_token is None:
     raise ValueError("missing DISCORD_BOT_AUTH_TOKEN environment variable")
 
+# Whitespace from a heredoc or tfvars value would hide the param: prefix or end up in the
+# SSM parameter name.
+discord_bot_auth_token = discord_bot_auth_token.strip()
+
 if discord_channel_id is None:
     raise ValueError("missing DISCORD_CHANNEL_ID environment variable")
 
@@ -45,17 +51,29 @@ print(f"[notice-discord] NOTIFY_APP_URL         = '{notify_app_url}'")
 
 # If this is a SSM Parameter fetch the actual auth token
 if token_source == "ssm-parameter":
-    ssm = boto3.client("ssm")
-    param_name = discord_bot_auth_token.removeprefix("param:")
-    response = ssm.get_parameter(Name=param_name, WithDecryption=True)
+    param_name = discord_bot_auth_token.removeprefix("param:").strip()
+    # An SSM error message names the parameter, and Lambda logs an uncaught init error's
+    # message. Raise only the type, outside the except so nothing chains the original.
+    ssm_failure = None
+    try:
+        response = boto3.client("ssm").get_parameter(Name=param_name, WithDecryption=True)
+    except Exception as err:  # noqa: BLE001
+        ssm_failure = type(err).__name__
+    if ssm_failure is not None:
+        raise RuntimeError(
+            f"notice-discord could not read the bot token from SSM ({ssm_failure}); the "
+            "function role needs ssm:GetParameter, and kms:Decrypt for a SecureString, on it"
+        )
     discord_bot_auth_token = response["Parameter"]["Value"]
 
 # A trailing newline (common in a value pasted into SSM) makes http.client reject the
 # header with a ValueError whose message is the whole header, token included.
 discord_bot_auth_token = discord_bot_auth_token.strip()
 
-# Well under the function's 10 s timeout, so a stalled connection still logs.
-DISCORD_TIMEOUT_SECONDS = 5
+# urlopen applies this per socket operation (connect, then each read), not to the whole
+# request, so two stalls must still fit inside the function's 10 s timeout for the ERROR
+# line to print. DNS resolution is not covered.
+DISCORD_TIMEOUT_SECONDS = 3
 
 discord_colors = {
     "green": 5763719,
@@ -150,11 +168,10 @@ def handler(event, context):
         method="POST",
     )
 
-    # Never log the request: its headers carry the bot token (#629).
+    # Never log the request headers: they carry the bot token (#629).
+    failure = None
     try:
-        with urllib.request.urlopen(req, timeout=DISCORD_TIMEOUT_SECONDS) as res:
-            body = json.loads(res.read().decode())
-            print(f"[notice-discord] message.id = {body['id']}")
+        res = urllib.request.urlopen(req, timeout=DISCORD_TIMEOUT_SECONDS)
     except urllib.error.HTTPError as err:
         try:
             detail = err.read().decode()
@@ -170,9 +187,19 @@ def handler(event, context):
         print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {err.reason}")
         raise
     except Exception as err:  # noqa: BLE001
-        # Anything else (a ValueError from http.client, a timeout while reading, a missing
-        # 'id') may carry the request in its message, and Lambda logs an uncaught exception's
-        # message. Log and raise only the type; `from None` keeps the original out of the trace.
-        name = type(err).__name__
-        print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {name}")
-        raise RuntimeError(f"notice-discord delivery failed: {name}") from None
+        # Anything else (e.g. http.client's ValueError for a bad header value) may carry the
+        # request in its message, and Lambda logs an uncaught exception's message. Keep only
+        # the type, and raise outside the except so the original is not chained as context.
+        failure = type(err).__name__
+    if failure is not None:
+        print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {failure}")
+        raise RuntimeError(f"notice-discord delivery failed: {failure}")
+
+    # 2xx: Discord has the message. A failure reading the reply must not raise, or Lambda's
+    # async retry would post a duplicate.
+    with res as r:
+        try:
+            body = json.loads(r.read().decode())
+            print(f"[notice-discord] message.id = {body['id']}")
+        except Exception as err:  # noqa: BLE001
+            print(f"[notice-discord] WARNING: message accepted, but the reply was unreadable: {type(err).__name__}")
