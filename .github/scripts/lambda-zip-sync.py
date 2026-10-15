@@ -7,20 +7,35 @@ from 2023-12-02 to 2026-10-15). Compares EXTRACTED content, never zip bytes: zip
 mtimes. Run from the repo root.
 rc 0 = all match · 1 = at least one stale · 2 = nothing measured.
 """
-import glob
 import os
+import subprocess
 import sys
 import zipfile
 
-zips = sorted(glob.glob("modules/*/*-lambda-function.zip"))
+# The population is what git TRACKS, not what the worktree holds: a local plan writes
+# untracked zips, and a committed zip deleted from the worktree must still be counted.
+try:
+    listed = subprocess.run(
+        ["git", "ls-files", "modules/*/*-lambda-function.zip"],
+        check=True, capture_output=True, text=True,
+    ).stdout.split()
+except (OSError, subprocess.CalledProcessError) as err:
+    print(f"NOT MEASURED - git ls-files failed ({err}); run from inside the repo")
+    sys.exit(2)
+
+zips = sorted(listed)
 if not zips:
-    print("NOT MEASURED - 0 lambda zips under modules/*/ (run from the repo root)")
+    print("NOT MEASURED - 0 tracked lambda zips under modules/*/ (run from the repo root)")
     sys.exit(2)
 
 stale = 0
 for z in zips:
     py = z[:-len(".zip")] + ".py"
     want = os.path.basename(py)
+    if not os.path.isfile(z):
+        print(f"STALE {z}: tracked but missing from the worktree")
+        stale += 1
+        continue
     if not os.path.isfile(py):
         print(f"STALE {z}: no sibling {py}")
         stale += 1

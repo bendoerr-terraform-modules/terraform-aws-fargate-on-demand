@@ -111,11 +111,12 @@ resource "aws_iam_role_policy_attachment" "notice_logs" {
   policy_arn = aws_iam_policy.notice_logs.arn
   role       = aws_iam_role.notice_role.name
 }
+
 resource "aws_cloudwatch_metric_alarm" "errors" {
   count = length(var.alarm_topic_arns) > 0 ? 1 : 0
 
   alarm_name          = "${module.label_notice.id}-errors"
-  alarm_description   = "notice-discord failed to deliver a notification. HTTP 401 in the log group means the bot token was revoked."
+  alarm_description   = "notice-discord failed to deliver a notification; the ERROR line in its log group gives the cause (HTTP 401 = bot token revoked; 400/403/404 = configuration). Clears only when a delivery succeeds."
   namespace           = "AWS/Lambda"
   metric_name         = "Errors"
   dimensions          = { FunctionName = aws_lambda_function.notice.function_name }
@@ -124,10 +125,13 @@ resource "aws_cloudwatch_metric_alarm" "errors" {
   evaluation_periods  = 1
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  treat_missing_data  = "notBreaching"
-  alarm_actions       = var.alarm_topic_arns
-  ok_actions          = var.alarm_topic_arns
-  tags                = module.label_notice.tags
+  # "ignore", not "notBreaching": with no invocations the alarm must hold its state, so a
+  # revoked token stays in ALARM until a delivery actually succeeds (Errors = 0), and a
+  # freshly created alarm stays INSUFFICIENT_DATA instead of sending an OK.
+  treat_missing_data = "ignore"
+  alarm_actions      = var.alarm_topic_arns
+  ok_actions         = var.alarm_topic_arns
+  tags               = module.label_notice.tags
 
   lifecycle {
     # A validation block cannot reference another variable below Terraform 1.9; the floor is 1.3.

@@ -192,5 +192,7 @@ jobs:
         run: python3 -m unittest discover -s modules/notice-discord/test -p 'test_*.py' -v
 
       - name: "Check committed lambda zips match their source"
+        # Independent of the unit tests above: report a stale zip even when they fail.
+        if: ${{ !cancelled() }}
         shell: bash
         run: python3 .github/scripts/lambda-zip-sync.py
