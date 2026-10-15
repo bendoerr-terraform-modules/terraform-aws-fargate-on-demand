@@ -190,3 +190,7 @@ jobs:
       - name: "Run Notice Discord Python Tests"
         shell: bash
         run: python3 -m unittest discover -s modules/notice-discord/test -p 'test_*.py' -v
+
+      - name: "Check committed lambda zips match their source"
+        shell: bash
+        run: python3 .github/scripts/lambda-zip-sync.py
