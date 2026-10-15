@@ -111,3 +111,29 @@ resource "aws_iam_role_policy_attachment" "notice_logs" {
   policy_arn = aws_iam_policy.notice_logs.arn
   role       = aws_iam_role.notice_role.name
 }
+resource "aws_cloudwatch_metric_alarm" "errors" {
+  count = length(var.alarm_topic_arns) > 0 ? 1 : 0
+
+  alarm_name          = "${module.label_notice.id}-errors"
+  alarm_description   = "notice-discord failed to deliver a notification. HTTP 401 in the log group means the bot token was revoked."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  dimensions          = { FunctionName = aws_lambda_function.notice.function_name }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_topic_arns
+  ok_actions          = var.alarm_topic_arns
+  tags                = module.label_notice.tags
+
+  lifecycle {
+    # A validation block cannot reference another variable below Terraform 1.9; the floor is 1.3.
+    precondition {
+      condition     = !contains(var.alarm_topic_arns, var.event_topic_arn)
+      error_message = "alarm_topic_arns must not include event_topic_arn: the alarm payload has no Event key (the function would fail on it and re-trigger the alarm), and a revoked token cannot report itself through Discord."
+    }
+  }
+}

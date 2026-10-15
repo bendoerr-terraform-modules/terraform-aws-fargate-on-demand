@@ -50,6 +50,11 @@ func TestDefaults(t *testing.T) {
 	// Print out the output for debugging
 	_, _ = pretty.Print(terraform.OutputAll(t, terraformOptions))
 
+	// The enabled alarm path is applied for real: its ARN must exist.
+	if alarmArn := terraform.Output(t, terraformOptions, "errors_alarm_arn"); alarmArn == "" {
+		t.Error("errors_alarm_arn is empty: the delivery-failure alarm was not created")
+	}
+
 	// Create a channel to receive discord messages on so that we can check if the notification was sent
 	discordMessageChannel := make(chan *discordgo.MessageEmbed)
 
