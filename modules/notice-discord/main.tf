@@ -111,3 +111,35 @@ resource "aws_iam_role_policy_attachment" "notice_logs" {
   policy_arn = aws_iam_policy.notice_logs.arn
   role       = aws_iam_role.notice_role.name
 }
+
+resource "aws_cloudwatch_metric_alarm" "errors" {
+  count = length(var.alarm_topic_arns) > 0 ? 1 : 0
+
+  alarm_name          = "${module.label_notice.id}-errors"
+  alarm_description   = "notice-discord failed at least one delivery attempt in the last 5 minutes (a retry may since have succeeded). The ERROR line in its log group gives the cause: HTTP 401 = bot token revoked; 400/403/404 = configuration."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  dimensions          = { FunctionName = aws_lambda_function.notice.function_name }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  # An event signal, not a state: a failure pages, and the alarm returns to OK silently
+  # once a 300 s window passes without one. No ok_actions, because an OK would read as
+  # "resolved" when it only means "no invocations since" (and a new alarm's first OK would
+  # page for nothing). A revoked token fails every later notification, so it pages again
+  # on the next failure after a quiet period; a burst inside one 300 s window (or spanning
+  # its retries) pages once.
+  treat_missing_data = "notBreaching"
+  alarm_actions      = var.alarm_topic_arns
+  tags               = module.label_notice.tags
+
+  lifecycle {
+    # A validation block cannot reference another variable below Terraform 1.9; the floor is 1.3.
+    precondition {
+      condition     = !contains(var.alarm_topic_arns, var.event_topic_arn)
+      error_message = "alarm_topic_arns must not include event_topic_arn: the alarm payload has no Event key (the function would fail on it and re-trigger the alarm), and a revoked token cannot report itself through Discord."
+    }
+  }
+}
