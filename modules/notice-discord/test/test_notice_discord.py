@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Unit tests for notice-discord-lambda-function.py"""
 import contextlib
+import email.message
 import importlib.util
 import io
 import json
 import os
 import sys
 import unittest
+import urllib.error
 from unittest.mock import MagicMock, patch
 
 CANARY = "canary-tok-7f3e9a1c2b4d5e6f"
@@ -96,6 +98,74 @@ class TestStartupLogNeverCarriesTheToken(unittest.TestCase):
         self.assertIn("DISCORD_BOT_AUTH_TOKEN_SRC = 'ssm-parameter'", out)
         # positive control: the SSM value really was resolved, so "absent" above is not vacuous
         self.assertEqual(module.discord_bot_auth_token, CANARY)
+
+
+def _http_error(code, reason):
+    hdrs = email.message.Message()
+    hdrs["Retry-After"] = "3"
+    hdrs["X-RateLimit-Reset-After"] = "2.5"
+    hdrs["Set-Cookie"] = "__dcfduid=should-not-be-logged"
+    return urllib.error.HTTPError(
+        "https://discord.com/api/channels/123456789012345678/messages",
+        code, reason, hdrs, io.BytesIO(b'{"message": "nope", "code": 0}'),
+    )
+
+
+class TestDeliveryFailureNeverLogsTheToken(unittest.TestCase):
+    EVENT = {"Event": "start", "Cluster": "c", "Service": "s", "Topic": "t"}
+
+    def setUp(self):
+        self._original_env = os.environ.copy()
+        self.module, _ = _load({**BASE_ENV, "DISCORD_BOT_AUTH_TOKEN": CANARY})
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._original_env)
+
+    def _run(self, side_effect):
+        """Run handler with urlopen raising side_effect; return (stdout, raised exception or None, request)."""
+        out, raised = io.StringIO(), None
+        with patch.object(self.module.urllib.request, "urlopen", side_effect=side_effect) as urlopen, \
+                contextlib.redirect_stdout(out):
+            try:
+                self.module.handler(self.EVENT, None)
+            except Exception as exc:  # noqa: BLE001
+                raised = exc
+        return out.getvalue(), raised, urlopen.call_args.args[0]
+
+    def test_request_really_carried_the_token(self):
+        # positive control: every "absent" assertion below is about a request that DID hold the canary
+        _, _, request = self._run(_http_error(401, "Unauthorized"))
+        self.assertEqual(request.get_header("Authorization"), f"Bot {CANARY}")
+
+    def test_401_is_logged_without_the_token_and_raised(self):
+        # a revoked token never heals; it must be loud, not logged-and-dropped
+        out, raised, _ = self._run(_http_error(401, "Unauthorized"))
+        self.assertNotIn(CANARY, out)
+        self.assertNotIn("Authorization", out)
+        self.assertIn("HTTP 401 Unauthorized", out)
+        self.assertIn('"message": "nope"', out)
+        self.assertIsInstance(raised, urllib.error.HTTPError)
+
+    def test_429_is_logged_with_rate_limit_headers_only_and_raised(self):
+        out, raised, _ = self._run(_http_error(429, "Too Many Requests"))
+        self.assertNotIn(CANARY, out)
+        self.assertIn("HTTP 429 Too Many Requests", out)
+        self.assertIn("Retry-After: 3", out)
+        self.assertIn("X-RateLimit-Reset-After: 2.5", out)
+        self.assertNotIn("should-not-be-logged", out)
+        self.assertIsInstance(raised, urllib.error.HTTPError)
+
+    def test_5xx_is_raised(self):
+        out, raised, _ = self._run(_http_error(502, "Bad Gateway"))
+        self.assertIsInstance(raised, urllib.error.HTTPError)  # first, so the raise itself is red-witnessed
+        self.assertNotIn(CANARY, out)
+
+    def test_network_error_is_logged_without_the_token_and_raised(self):
+        out, raised, _ = self._run(urllib.error.URLError("timed out"))
+        self.assertNotIn(CANARY, out)
+        self.assertIn("timed out", out)
+        self.assertIsInstance(raised, urllib.error.URLError)
 
 
 if __name__ == "__main__":

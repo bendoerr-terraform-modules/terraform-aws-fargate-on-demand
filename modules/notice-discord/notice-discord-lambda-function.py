@@ -5,6 +5,7 @@ https://stackoverflow.com/a/67224684/84423
 import os
 import boto3
 import datetime
+import urllib.error
 import urllib.request
 import json
 
@@ -76,6 +77,16 @@ event_descriptions = {
 }
 
 
+def _diagnostic_headers(headers):
+    """Only the response headers that explain a rate limit. Never request headers."""
+    if headers is None:
+        return ""
+    return "\n".join(
+        f"{k}: {v}" for (k, v) in headers.items()
+        if k.lower() == "retry-after" or k.lower().startswith("x-ratelimit-")
+    )
+
+
 def lambda_handler(event, context):
     for r in event["Records"]:
         handler(json.loads(r["Sns"]["Message"]), context)
@@ -122,18 +133,24 @@ def handler(event, context):
         method="POST",
     )
 
-    # request.add_header("Authorization", f"Bot {discord_bot_auth_token}")
-
+    # Never log the request: its headers carry the bot token (#629).
     try:
         with urllib.request.urlopen(req) as res:
             body = json.loads(res.read().decode())
             print(f"[notice-discord] message.id = {body['id']}")
     except urllib.error.HTTPError as err:
-        req_hdrs = "\n".join([f"{k}: {v}" for (k, v) in req.header_items()])
-        req_str = f"{req.get_method()} {req.get_full_url()} HTTP/1.1\n{req_hdrs}\n\n{req.data.decode()}"
-        res_hdrs = "\n".join([f"{k}: {v}" for (k, v) in err.headers.items()])
-        res_str = f"HTTP/1.1 {err.code} {err.reason}\n{res_hdrs}\n\n{err.read().decode()}"
-        print(f"[notice-discord] ERROR: Failed to send message.\n{req_str}\n\n{res_str}")
+        try:
+            detail = err.read().decode()
+        except Exception:  # noqa: BLE001 - best-effort logging only
+            detail = "<no body>"
+        print(
+            f"[notice-discord] ERROR: POST {req.get_full_url()} -> HTTP {err.code} {err.reason}\n"
+            f"{_diagnostic_headers(err.headers)}\n{detail}"
+        )
+        raise
+    except urllib.error.URLError as err:
+        print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {err.reason}")
+        raise
 
 # if __name__ == "__main__":
 #     # {"Event": "Error", "Cluster": "brd-testing-ue1-cluster", "Service": "brd-testing-ue1-foobar", "Topic": "arn:::foobar://cake"}
