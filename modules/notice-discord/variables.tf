@@ -59,8 +59,8 @@ variable "alarm_topic_arns" {
   type        = list(string)
   default     = []
   description = <<-EOT
-    SNS topics notified when the function fails to deliver (Lambda Errors >= 1 in 5 minutes), and
-    again when a delivery next succeeds. Empty creates no alarm. Must NOT include
+    SNS topics notified whenever a delivery attempt fails (Lambda Errors >= 1 in 5 minutes).
+    No OK notification is sent. Empty creates no alarm. Must NOT include
     event_topic_arn: a dead token cannot report itself through Discord. A list (not a nullable
     string) so the alarm's count is known at plan even when the ARN is created in the same config.
   EOT

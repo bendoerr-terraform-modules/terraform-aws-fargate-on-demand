@@ -116,7 +116,7 @@ resource "aws_cloudwatch_metric_alarm" "errors" {
   count = length(var.alarm_topic_arns) > 0 ? 1 : 0
 
   alarm_name          = "${module.label_notice.id}-errors"
-  alarm_description   = "notice-discord failed to deliver a notification; the ERROR line in its log group gives the cause (HTTP 401 = bot token revoked; 400/403/404 = configuration). Clears only when a delivery succeeds."
+  alarm_description   = "notice-discord failed at least one delivery attempt in the last 5 minutes (a retry may since have succeeded). The ERROR line in its log group gives the cause: HTTP 401 = bot token revoked; 400/403/404 = configuration."
   namespace           = "AWS/Lambda"
   metric_name         = "Errors"
   dimensions          = { FunctionName = aws_lambda_function.notice.function_name }
@@ -125,12 +125,12 @@ resource "aws_cloudwatch_metric_alarm" "errors" {
   evaluation_periods  = 1
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  # "ignore", not "notBreaching": with no invocations the alarm must hold its state, so a
-  # revoked token stays in ALARM until a delivery actually succeeds (Errors = 0), and a
-  # freshly created alarm stays INSUFFICIENT_DATA instead of sending an OK.
-  treat_missing_data = "ignore"
+  # An event signal, not a state: every failed attempt pages, and the alarm returns to OK
+  # silently. No ok_actions, because an OK would read as "resolved" when it only means "no
+  # invocations since" (and a new alarm's first OK would page for nothing). A revoked token
+  # fails every later notification, so it pages again on each one.
+  treat_missing_data = "notBreaching"
   alarm_actions      = var.alarm_topic_arns
-  ok_actions         = var.alarm_topic_arns
   tags               = module.label_notice.tags
 
   lifecycle {
