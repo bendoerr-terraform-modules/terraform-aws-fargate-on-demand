@@ -14,6 +14,9 @@ import zipfile
 
 # The population is what git TRACKS, not what the worktree holds: a local plan writes
 # untracked zips, and a committed zip deleted from the worktree must still be counted.
+# A git pathspec `*` also matches `/`, so this finds lambda zips at ANY depth under
+# modules/, not only one directory deep. That is deliberate (the sibling .py lookup is
+# per path); do not "fix" it with :(glob) unless you mean to shrink the population.
 try:
     listed = subprocess.run(
         ["git", "ls-files", "modules/*/*-lambda-function.zip"],

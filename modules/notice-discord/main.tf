@@ -128,7 +128,8 @@ resource "aws_cloudwatch_metric_alarm" "errors" {
   # An event signal, not a state: every failed attempt pages, and the alarm returns to OK
   # silently. No ok_actions, because an OK would read as "resolved" when it only means "no
   # invocations since" (and a new alarm's first OK would page for nothing). A revoked token
-  # fails every later notification, so it pages again on each one.
+  # fails every later notification, so it pages again on the next failure after a quiet
+  # period; a burst inside one 300 s window (or spanning its retries) pages once.
   treat_missing_data = "notBreaching"
   alarm_actions      = var.alarm_topic_arns
   tags               = module.label_notice.tags
