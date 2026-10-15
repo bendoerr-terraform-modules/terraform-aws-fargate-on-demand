@@ -21,10 +21,10 @@ BASE_ENV = {
 }
 
 
-def _load(env):
+def _load(env, ssm_value=CANARY):
     """Import the lambda under env; return (module, everything it printed at import)."""
     boto3 = MagicMock()
-    boto3.client.return_value.get_parameter.return_value = {"Parameter": {"Value": CANARY}}
+    boto3.client.return_value.get_parameter.return_value = {"Parameter": {"Value": ssm_value}}
     sys.modules["boto3"] = boto3
     os.environ.update(env)
     spec = importlib.util.spec_from_file_location(
@@ -167,6 +167,47 @@ class TestDeliveryFailureNeverLogsTheToken(unittest.TestCase):
         self.assertIn("timed out", out)
         self.assertIsInstance(raised, urllib.error.URLError)
 
+    def test_unexpected_error_never_carries_the_token(self):
+        # http.client rejects a header value containing a newline with a ValueError whose message
+        # is the whole header. It is neither HTTPError nor URLError, and Lambda logs an uncaught
+        # exception's message, so it must be replaced, not re-raised as is.
+        out, raised, _ = self._run(ValueError(f"Invalid header value b'Bot {CANARY}\\n'"))
+        self.assertIsNotNone(raised)
+        self.assertNotIn(CANARY, str(raised))
+        self.assertIsNone(raised.__cause__)
+        self.assertTrue(raised.__suppress_context__)
+        self.assertNotIn(CANARY, out)
+        self.assertIn("ValueError", out)
+
+    def test_request_has_a_timeout_below_the_function_timeout(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b'{"id": "1"}'
+        with patch.object(self.module.urllib.request, "urlopen", return_value=response) as urlopen, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.module.handler(self.EVENT, None)
+        self.assertLess(urlopen.call_args.kwargs["timeout"], 10)
+
+    def test_http_error_logs_the_payload_for_diagnosis(self):
+        out, _, _ = self._run(_http_error(400, "Bad Request"))
+        self.assertIn('"embeds"', out)
+
+
+class TestTokenIsNormalised(unittest.TestCase):
+    def setUp(self):
+        self._original_env = os.environ.copy()
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._original_env)
+
+    def test_literal_token_whitespace_is_stripped(self):
+        module, _ = _load({**BASE_ENV, "DISCORD_BOT_AUTH_TOKEN": CANARY + "\n"})
+        self.assertEqual(module.discord_bot_auth_token, CANARY)
+
+    def test_ssm_token_whitespace_is_stripped(self):
+        # values pasted into SSM commonly carry a trailing newline
+        module, _ = _load({**BASE_ENV, "DISCORD_BOT_AUTH_TOKEN": "param:" + PARAM_PATH}, ssm_value=CANARY + "\r\n")
+        self.assertEqual(module.discord_bot_auth_token, CANARY)
 
 if __name__ == "__main__":
     unittest.main()

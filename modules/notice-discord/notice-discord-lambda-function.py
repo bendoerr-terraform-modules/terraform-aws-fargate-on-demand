@@ -44,11 +44,18 @@ print(f"[notice-discord] NOTIFY_APP_NAME        = '{notify_app_name}'")
 print(f"[notice-discord] NOTIFY_APP_URL         = '{notify_app_url}'")
 
 # If this is a SSM Parameter fetch the actual auth token
-if discord_bot_auth_token.startswith("param:"):
+if token_source == "ssm-parameter":
     ssm = boto3.client("ssm")
     param_name = discord_bot_auth_token.removeprefix("param:")
     response = ssm.get_parameter(Name=param_name, WithDecryption=True)
     discord_bot_auth_token = response["Parameter"]["Value"]
+
+# A trailing newline (common in a value pasted into SSM) makes http.client reject the
+# header with a ValueError whose message is the whole header, token included.
+discord_bot_auth_token = discord_bot_auth_token.strip()
+
+# Well under the function's 10 s timeout, so a stalled connection still logs.
+DISCORD_TIMEOUT_SECONDS = 5
 
 discord_colors = {
     "green": 5763719,
@@ -103,12 +110,12 @@ def lambda_handler(event, context):
 
 
 def handler(event, context):
+    """Post one Discord embed describing a fargate-on-demand task-state event."""
     print(f"[notice-discord] event.event   = '{event['Event']}'")
     print(f"[notice-discord] event.Cluster = '{event['Cluster']}'")
     print(f"[notice-discord] event.Service = '{event['Service']}'")
     print(f"[notice-discord] event.Topic   = '{event['Topic']}'")
 
-    """Updates the desired task count for an ECS Service."""
     event_type = event["Event"]
     if event_type not in event_titles:
         event_type = "unknown"
@@ -145,7 +152,7 @@ def handler(event, context):
 
     # Never log the request: its headers carry the bot token (#629).
     try:
-        with urllib.request.urlopen(req) as res:
+        with urllib.request.urlopen(req, timeout=DISCORD_TIMEOUT_SECONDS) as res:
             body = json.loads(res.read().decode())
             print(f"[notice-discord] message.id = {body['id']}")
     except urllib.error.HTTPError as err:
@@ -155,9 +162,17 @@ def handler(event, context):
             detail = "<no body>"
         print(
             f"[notice-discord] ERROR: POST {req.get_full_url()} -> HTTP {err.code} {err.reason}\n"
-            f"{_diagnostic_headers(err.headers)}\n{detail}"
+            f"{_diagnostic_headers(err.headers)}\n{detail}\n"
+            f"payload: {req.data.decode()}"
         )
         raise
     except urllib.error.URLError as err:
         print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {err.reason}")
         raise
+    except Exception as err:  # noqa: BLE001
+        # Anything else (a ValueError from http.client, a timeout while reading, a missing
+        # 'id') may carry the request in its message, and Lambda logs an uncaught exception's
+        # message. Log and raise only the type; `from None` keeps the original out of the trace.
+        name = type(err).__name__
+        print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {name}")
+        raise RuntimeError(f"notice-discord delivery failed: {name}") from None
