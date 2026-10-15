@@ -1,6 +1,16 @@
-"""TODO
-See limitations about message here
-https://stackoverflow.com/a/67224684/84423
+"""notice-discord task-state lambda.
+
+Subscribed to the fargate-on-demand task-state SNS topic. Posts one Discord embed
+per event to DISCORD_CHANNEL_ID as a bot.
+
+The bot token is supplied either literally or as ``param:<ssm-name>``; in the SSM
+form it is fetched once at cold start with decryption. Only the token's SOURCE is
+ever logged, and delivery errors are logged without the request (its headers carry
+the token). Every delivery failure is re-raised, so Lambda's async retries (2)
+apply and the Errors metric sees it; a revoked token (401) is loud, not dropped.
+Retrying a 5xx can duplicate a message Discord did accept; acceptable here.
+
+Discord embed limits: https://stackoverflow.com/a/67224684/84423
 """
 import os
 import boto3
@@ -151,12 +161,3 @@ def handler(event, context):
     except urllib.error.URLError as err:
         print(f"[notice-discord] ERROR: POST {req.get_full_url()} failed: {err.reason}")
         raise
-
-# if __name__ == "__main__":
-#     # {"Event": "Error", "Cluster": "brd-testing-ue1-cluster", "Service": "brd-testing-ue1-foobar", "Topic": "arn:::foobar://cake"}
-#     lambda_handler({
-#         "Event": "Error",
-#         "Cluster": "brd-testing-ue1-cluster",
-#         "Service": "brd-testing-ue1-foobar",
-#         "Topic": "arn:::foobar://cake"
-#     }, {})
