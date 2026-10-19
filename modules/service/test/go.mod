@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.47.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.6
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.73.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.99.1
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.100.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.64.1
 	github.com/aws/aws-sdk-go-v2/service/sns v1.47.2
 	github.com/gruntwork-io/terratest v1.0.1
@@ -25,7 +25,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/acm v1.38.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.66.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.88.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.89.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.297.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.57.1 // indirect
