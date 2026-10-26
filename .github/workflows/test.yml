@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: "Harden Runner"
-        uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -146,7 +146,7 @@ jobs:
         run: go-junit-report -set-exit-code < results.out > results.xml
 
       - name: "Upload Test Results"
-        uses: step-security/test-summary-action@67391420afc3eba57f4cb249a1a5a677e0eacd9e # v2.4.3
+        uses: step-security/test-summary-action@abf583950a62dd915f2909155d69775d5cde6a40 # v2.6.0
         if: always() && hashFiles(format('{0}/results.xml', matrix.project)) != ''
         with:
           paths: ${{ matrix.project }}/results.xml
@@ -165,7 +165,7 @@ jobs:
 
     steps:
       - name: "Harden Runner"
-        uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: block
           allowed-endpoints: >
