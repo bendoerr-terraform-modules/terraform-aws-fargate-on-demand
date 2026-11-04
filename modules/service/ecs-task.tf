@@ -3,7 +3,7 @@ locals {
   # is null.
   custodian_default_images = {
     tcp       = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-custodian:0.1.3"
-    minecraft = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-minecraft-custodian:v0.1.0"
+    minecraft = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-minecraft-custodian:v1.0.0"
   }
 
   custodian_image = coalesce(var.custodian.image, local.custodian_default_images[var.custodian.kind])

@@ -28,7 +28,7 @@ import (
 // custodian_default_images. A change here should also bump the module.
 const (
 	tcpCustodianImage       = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-custodian:0.1.3"
-	minecraftCustodianImage = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-minecraft-custodian:v0.1.0"
+	minecraftCustodianImage = "ghcr.io/bendoerr-terraform-modules/terraform-aws-fargate-on-demand-minecraft-custodian:v1.0.0"
 )
 
 // Terratest-compatible note: this file's TestServiceParkedAtZero only
