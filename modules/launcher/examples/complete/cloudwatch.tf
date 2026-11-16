@@ -1,6 +1,6 @@
 module "log_group" {
   source            = "terraform-aws-modules/cloudwatch/aws//modules/log-group"
-  version           = "~> 5.7"
+  version           = "~> 6.0"
   name              = var.namespace
   retention_in_days = 1
 }
